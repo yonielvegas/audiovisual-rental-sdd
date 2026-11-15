@@ -41,9 +41,9 @@ GitHub Actions ejecuta la suite y comprueba el arranque y las migraciones con un
 
 | Integrante | Rol inicial | Trabajo |
 | --- | --- | --- |
-| Eric Ruiz | Product / Spec Lead | Catálogo e inventario |
-| Yoel Samaniego | Architecture / Development Lead | ODD, SDD e infraestructura inicial |
-| Yini Pan | QA / DevOps Lead | Reservas y disponibilidad |
+| Eric Ruiz | Product / Spec Lead | [#4 · Catálogo e inventario](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/4) |
+| Yoel Samaniego | Architecture / Development Lead | [#1 · ODD](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/1), [#2 · SDD](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/2) y [#3 · Infraestructura](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/3) |
+| Yini Pan | QA / DevOps Lead | [#5 · Reservas y disponibilidad](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/5) |
 
 Una vez integrada la infraestructura, Eric y Yini deben clonar el repositorio con sus cuentas, comprobar el arranque y trabajar en una rama por Issue desde `main`. La entrega de Yini debe acordar con Eric el contrato de unidades e incluir la prueba concurrente de doble reserva. Antes de implementar rutas protegidas, el equipo debe acordar el responsable y el contrato de sesión. El PR de cada entrega debe enlazar la Issue, los criterios y las pruebas ejecutadas.
 
