@@ -16,11 +16,13 @@ El equipo usará el laboratorio 13 como referencia del trabajo académico. Cada 
 
 ## Equipo
 
-| Integrante | Rol inicial | Responsabilidad prevista |
+Yoel Samaniego inició el repositorio y preparó la documentación inicial con apoyo de IA.
+
+| Integrante | Rol inicial | Trabajo asignado |
 | --- | --- | --- |
-| Eric Ruiz | Product / Spec Lead | Catálogo e inventario |
+| Eric Ruiz | Product / Spec Lead | Catálogo e inventario (previsto) |
 | Yoel Samaniego | Architecture / Development Lead | ODD, SDD e infraestructura inicial |
-| Yini Pan | QA / DevOps Lead | Reservas y disponibilidad |
+| Yini Pan | QA / DevOps Lead | Reservas y disponibilidad (previsto) |
 
 Consulta la [rotación de roles](docs/roles-and-cycles.md), las [decisiones](docs/decisions.md) y el [registro de IA](docs/ai-log.md).
 
