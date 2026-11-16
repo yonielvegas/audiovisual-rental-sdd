@@ -6,8 +6,8 @@ Estado: diseño inicial. La infraestructura descrita para la Issue 3 se adopta c
 
 | Componente | Elección | Justificación |
 | --- | --- | --- |
-| Frontend | HTML, CSS y JavaScript del navegador en `src/frontend/` | La base solo necesita una página y una consulta de estado. Los archivos estáticos se pueden extender con módulos cuando lleguen los flujos funcionales. |
-| Backend | Node.js 24, módulos ESM y HTTP de Node en `src/backend/` | Una sola herramienta ejecuta el servidor, los módulos de infraestructura y las pruebas. El alcance inicial necesita dos rutas y una dependencia de ejecución, el cliente PostgreSQL `pg`. |
+| Frontend | HTML, CSS y JavaScript del navegador en `src/frontend/` | Las páginas comparten un layout y estilos glassmorphism. Los módulos se pueden extender cuando lleguen los flujos funcionales. Consulta la [guía de UI/UX](../docs/ui-ux.md). |
+| Backend | Node.js 24, módulos ESM y HTTP de Node en `src/backend/` | Una sola herramienta ejecuta el servidor, los módulos de infraestructura y las pruebas. Sirve las páginas, los recursos estáticos y la API con una dependencia de ejecución, el cliente PostgreSQL `pg`. |
 | Persistencia | PostgreSQL 17, SQL versionado en `db/migrations/` | Permite transacciones y restricciones al reservar por unidad e intervalo. La misma versión se utiliza en desarrollo y en CI. |
 | Ejecución | Docker Compose | Define servicios, dependencias y comprobaciones de arranque en un solo archivo reproducible. |
 | Pruebas y CI | `node:test`, pruebas de humo contra Compose y GitHub Actions | Validan el contrato HTTP con dependencias controladas y, en un segundo nivel, demuestran integración con PostgreSQL real. |

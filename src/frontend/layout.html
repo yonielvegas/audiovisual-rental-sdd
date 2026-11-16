@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#080e1a">
+    <title>{{title}}</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <header class="site-header shell">
+      <div class="site-bar glass">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true"></span>
+          Alquiler audiovisual
+        </a>
+        <nav class="site-nav" aria-label="Navegación principal">
+          <a href="/"{{home-current}}>Inicio</a>
+          <a href="/#nosotros">Nosotros</a>
+          <a href="/catalogo"{{catalog-current}}>Catálogo</a>
+        </nav>
+      </div>
+    </header>
+    <main id="contenido" tabindex="-1">
+      {{content}}
+    </main>
+    <footer class="site-footer shell">
+      <small>Proyecto académico de Tópicos Especiales II</small>
+      <p id="system-status" class="status" role="status">Comprobando la conexión con el servidor.</p>
+      <noscript><small>Activa JavaScript para consultar el estado de la conexión.</small></noscript>
+    </footer>
+  </body>
+</html>

@@ -39,3 +39,27 @@ test('sirve la página de inicio sin depender de PostgreSQL', async (context) =>
   assert.match(await response.text(), /equipos audiovisuales/i);
   assert.equal(check.mock.callCount(), 0);
 });
+
+test('sirve la fotografía y enlaza la landing con el catálogo provisional', async (context) => {
+  const check = context.mock.fn(async () => {});
+  const base = await startApp(context, check);
+  const home = await (await fetch(base)).text();
+  assert.match(home, /href="\/catalogo"[^>]*>\s*Ver catálogo/);
+  assert.match(home, /href="\/" aria-current="page"/);
+  assert.match(home, /src="\/hero.webp"/);
+
+  const image = await fetch(`${base}/hero.webp`);
+  assert.equal(image.status, 200);
+  assert.equal(image.headers.get('content-type'), 'image/webp');
+  assert.equal(Buffer.from(await image.arrayBuffer()).subarray(8, 12).toString(), 'WEBP');
+
+  const response = await fetch(`${base}/catalogo`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /^text\/html/);
+  const catalog = await response.text();
+  assert.match(catalog, /href="\/catalogo" aria-current="page"/);
+  assert.match(catalog, /Eric Ruiz/);
+  assert.match(catalog, /issues\/4/);
+  assert.match(catalog, /href="\/"[^>]*>[^\n]*Volver al inicio/);
+  assert.equal(check.mock.callCount(), 0);
+});
