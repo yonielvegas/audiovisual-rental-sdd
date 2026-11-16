@@ -48,8 +48,15 @@ export function inventoryRoutes(inventory) {
 
     ['/api/equipment', {
       GET: {
-        handler: async ({ response, query }) => {
-          const equipment = await inventory.listEquipment({ categoryId: query.get('categoryId') });
+        // Consulta pública. Se resuelve el actor solo para que la
+        // administración pueda ver también los equipos despublicados; sin
+        // cookie de sesión no se consulta la base.
+        actor: true,
+        handler: async ({ response, query, actor }) => {
+          const equipment = await inventory.listEquipment({
+            categoryId: query.get('categoryId'),
+            includeUnpublished: actor?.role === roles.admin,
+          });
           sendJson(response, 200, { equipment });
         },
       },
@@ -64,8 +71,12 @@ export function inventoryRoutes(inventory) {
 
     ['/api/equipment/:id', {
       GET: {
-        handler: async ({ response, params }) => {
-          sendJson(response, 200, { equipment: await inventory.getEquipment(params.id) });
+        actor: true,
+        handler: async ({ response, params, actor }) => {
+          const equipment = await inventory.getEquipment(params.id, {
+            includeUnpublished: actor?.role === roles.admin,
+          });
+          sendJson(response, 200, { equipment });
         },
       },
       PATCH: {

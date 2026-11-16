@@ -90,6 +90,14 @@
         <label for="filter-equipment-category">Categoría</label>
         <select id="filter-equipment-category"><option value="">Todas</option></select>
       </p>
+      <p class="field filter-field">
+        <label for="filter-equipment-published">Publicación</label>
+        <select id="filter-equipment-published">
+          <option value="">Todos</option>
+          <option value="published">Publicados</option>
+          <option value="unpublished">Sin publicar</option>
+        </select>
+      </p>
       <button class="button button-primary" type="button" data-create="equipment">
         <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
         Nuevo equipo
@@ -99,7 +107,7 @@
       <table class="data-table">
         <caption class="visually-hidden">Equipos del catálogo</caption>
         <thead>
-          <tr><th scope="col">Nombre</th><th scope="col">Categoría</th><th scope="col">Descripción</th><th scope="col">Unidades activas</th><th scope="col">Acciones</th></tr>
+          <tr><th scope="col">Nombre</th><th scope="col">Categoría</th><th scope="col">Marca y modelo</th><th scope="col">Tarifa/día</th><th scope="col">Unidades activas</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr>
         </thead>
         <tbody id="rows-equipment"></tbody>
       </table>
@@ -191,11 +199,38 @@
         <label for="equipment-name">Nombre</label>
         <input id="equipment-name" name="name" type="text" maxlength="120" required>
       </p>
+      <div class="field-pair">
+        <p class="field">
+          <label for="equipment-brand">Marca <span class="field-note">(opcional)</span></label>
+          <input id="equipment-brand" name="brand" type="text" maxlength="60" placeholder="Sony">
+        </p>
+        <p class="field">
+          <label for="equipment-model">Modelo <span class="field-note">(opcional)</span></label>
+          <input id="equipment-model" name="model" type="text" maxlength="60" placeholder="FX3">
+        </p>
+      </div>
+      <div class="field-pair">
+        <p class="field">
+          <label for="equipment-rate">Tarifa por día <span class="field-note">(USD, opcional)</span></label>
+          <input id="equipment-rate" name="dailyRate" type="number" min="0" max="1000000" step="0.01" placeholder="45.00">
+        </p>
+        <p class="field">
+          <label for="equipment-image">Imagen <span class="field-note">(opcional)</span></label>
+          <input id="equipment-image" name="imageUrl" type="text" maxlength="500" placeholder="/imagenes/fx3.webp">
+        </p>
+      </div>
       <p class="field">
         <label for="equipment-description">Descripción <span class="field-note">(opcional)</span></label>
         <textarea id="equipment-description" name="description" maxlength="600" rows="3"></textarea>
       </p>
-      <p class="panel-hint">El nombre no puede repetirse dentro de la misma categoría.</p>
+      <p class="field field-check">
+        <input id="equipment-published" name="published" type="checkbox" checked>
+        <label for="equipment-published">Publicado en el catálogo público</label>
+      </p>
+      <p class="panel-hint">
+        El nombre no puede repetirse dentro de la misma categoría. La imagen admite una ruta del mismo origen
+        que empiece por «/» o una dirección https. Dejar la tarifa vacía la marca como pendiente de fijar.
+      </p>
       <p class="feedback" data-dialog-error role="alert" hidden></p>
     </div>
     <footer class="modal-foot">

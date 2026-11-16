@@ -39,12 +39,24 @@ Decisiones técnicas adoptadas al implementar RF-02 y RF-03. Quedan abiertas a r
 | Las unidades físicas no se borran. Una unidad fuera de servicio pasa a `active = false`. | Conserva el historial de reservas y hace que AC-03 pueda comprobar que el inventario se preserva. Es además una garantía publicada en el contrato que consume Reservas. |
 | Las categorías y los equipos sí se eliminan, pero solo cuando no queda nada que dependa de ellos. El rechazo lo decide la clave foránea `ON DELETE RESTRICT` y la aplicación traduce `23503` a HTTP 409. | La administración pidió poder eliminar registros. Limitarlo a lo que está vacío da esa capacidad sin poner en riesgo las unidades ni las reservas, y evita una comprobación previa con ventana de carrera. |
 | Los nombres de categoría son únicos y los de equipo son únicos dentro de su categoría, comparando en minúsculas. | Un catálogo público con dos entradas que solo difieren en mayúsculas confunde a quien consulta. Va más allá del mínimo del modelo de datos y necesita confirmación del equipo. |
-| El catálogo publica todos los equipos y muestra su número de unidades activas, sin ocultar los que tienen cero. | No se inventa una regla de publicación que la especificación no fija. Queda pendiente decidir si un equipo sin unidades activas debe ocultarse. |
+| La visibilidad pública de un equipo la decide una marca `published`, no su número de unidades. Un equipo sin unidades activas aparece en el catálogo señalado como «Sin unidades en servicio». | Da a la administración un control explícito y evita ocultar equipos por una regla implícita. Un equipo recién creado, al que todavía no se le han registrado unidades, sigue siendo consultable. Cierra la decisión que quedaba abierta. |
 | Una desactivación de unidad y una confirmación de reserva se serializan con bloqueos de fila (`FOR UPDATE` frente a `FOR SHARE`). | Responde la pregunta abierta sobre desactivar unidades con reservas vigentes, sin bloquear el inventario completo. |
 | El rol administrativo se comprueba en una única frontera, `src/backend/access.js`, que las rutas consultan declarando el rol que exigen. | Mantiene el control de acceso en un solo lugar. Al implementar RF-01 bastó sustituir la resolución del actor sin tocar ninguna ruta del inventario. |
 | La administración se expone en la página `/inventario`, protegida por rol en el servidor. | Permite demostrar AC-03 y O-03 en el navegador. La página no se sirve siquiera a quien no tiene rol `ADMIN`. |
 
 Pendiente de acuerdo del equipo: qué ocurre con las reservas ya confirmadas de una unidad que se desactiva y si un equipo sin unidades activas debe salir del catálogo público.
+
+## Catálogo público y datos de presentación
+
+| Decisión | Motivo |
+| --- | --- |
+| Marca, modelo, tarifa, imagen y publicación son atributos del equipo, no de la unidad física. | Dos unidades del mismo equipo comparten modelo y tarifa, y se distinguen por su código de inventario. Si alguna vez una unidad necesita tarifa propia, el campo baja a `units` sin romper lo guardado. |
+| La tarifa se guarda en céntimos enteros y una sola moneda acompaña al dato en el contrato. | Evita la aritmética en coma flotante sobre importes. La moneda explícita deja la puerta abierta a varias divisas sin cambiar el tipo de dato. |
+| `NULL` en la tarifa significa «todavía no fijada», distinto de una tarifa de cero. | El catálogo puede decir «Tarifa por confirmar» en vez de anunciar un alquiler gratuito por un dato que falta. |
+| La imagen se guarda como ruta del mismo origen o dirección `https`, y el catálogo dibuja un marcador cuando falta. | Permite ilustrar el catálogo hoy sin construir una canalización de subida de archivos. Rechazar otros esquemas evita que una ficha cargue contenido inseguro. La subida de imágenes queda como trabajo futuro. |
+| La búsqueda, el filtro y el ordenamiento del catálogo se resuelven en el navegador sobre la lista recibida. | El catálogo del MVP cabe en una respuesta y así no se añaden parámetros ni consultas al backend. Si el inventario creciera, el mismo contrato admite moverlos al servidor con paginación. |
+| Los recuentos de las fichas de categoría se calculan sobre los equipos que el catálogo recibe, no sobre el total del inventario. | Un visitante nunca ve anunciados equipos que esa pantalla no puede mostrarle. |
+| El catálogo no incluye ningún control de reserva, fechas, carrito ni pago. | RF-04 a RF-06 son otra entrega. El texto de la ficha advierte de que el número de unidades todavía no descuenta reservas. |
 
 ## Interfaz de administración del inventario
 

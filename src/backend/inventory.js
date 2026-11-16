@@ -4,8 +4,20 @@ export const limits = {
   categoryName: 80,
   equipmentName: 120,
   equipmentDescription: 600,
+  equipmentBrand: 60,
+  equipmentModel: 60,
+  imageUrl: 500,
   inventoryCode: 24,
 };
+
+// El MVP opera en una sola moneda, así que el importe viaja en céntimos
+// enteros y la moneda acompaña al dato en el contrato.
+export const currency = 'USD';
+const maximumDailyRateCents = 100_000_000;
+
+// Ruta del mismo origen o URL https. No se aceptan otros esquemas para que una
+// ficha del catálogo no pueda cargar contenido inseguro.
+const imageUrlPattern = /^(\/[^\s]*|https:\/\/[^\s]+)$/;
 
 // RN-01. El código identifica la etiqueta física de la unidad. Se acepta en
 // mayúsculas, dígitos y guiones para que sea legible sobre el equipo.
@@ -51,6 +63,48 @@ function requireInventoryCode(value) {
   return code;
 }
 
+function optionalText(value, label, maximum) {
+  if (value === null || value === undefined) return '';
+  if (typeof value !== 'string') {
+    throw invalidRequest(`${label} debe enviarse como texto.`);
+  }
+  const text = value.normalize('NFC').replace(/\s+/gu, ' ').trim();
+  if (text.length > maximum) {
+    throw invalidRequest(`${label} admite hasta ${maximum} caracteres.`);
+  }
+  return text;
+}
+
+// La tarifa llega en céntimos enteros. `null` significa que todavía no está
+// fijada, que no es lo mismo que una tarifa de cero.
+function optionalDailyRate(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const cents = typeof value === 'string' && /^[0-9]+$/.test(value.trim()) ? Number(value.trim()) : value;
+  if (typeof cents !== 'number' || !Number.isInteger(cents) || cents < 0 || cents > maximumDailyRateCents) {
+    throw invalidRequest(
+      'La tarifa diaria debe enviarse como un número entero de céntimos entre 0 y 100000000.',
+      'invalid_daily_rate',
+    );
+  }
+  return cents;
+}
+
+function optionalImageUrl(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'string') {
+    throw invalidRequest('La imagen debe enviarse como texto.');
+  }
+  const url = value.trim();
+  if (!url) return null;
+  if (url.length > limits.imageUrl || !imageUrlPattern.test(url)) {
+    throw invalidRequest(
+      'La imagen debe ser una ruta del mismo origen que empiece por «/» o una dirección https.',
+      'invalid_image_url',
+    );
+  }
+  return url;
+}
+
 export function parseIdentifier(value, label) {
   const text = typeof value === 'number' && Number.isInteger(value) ? String(value) : value;
   if (typeof text !== 'string' || !identifierPattern.test(text)) {
@@ -59,12 +113,14 @@ export function parseIdentifier(value, label) {
   return Number(text);
 }
 
-function requireActive(value) {
+function requireFlag(value, label) {
   if (typeof value !== 'boolean') {
-    throw invalidRequest('El estado activo debe enviarse como booleano.');
+    throw invalidRequest(`${label} debe enviarse como booleano.`);
   }
   return value;
 }
+
+const requireActive = (value) => requireFlag(value, 'El estado activo');
 
 function present(body, field) {
   return Object.hasOwn(body, field) && body[field] !== undefined;
@@ -94,18 +150,21 @@ export function createInventory({ store }) {
       return store.listCategories();
     },
 
-    async listEquipment({ categoryId } = {}) {
+    // `includeUnpublished` solo lo activa la administración. Para el resto, un
+    // equipo despublicado se comporta como si no existiera.
+    async listEquipment({ categoryId, includeUnpublished = false } = {}) {
+      const published = includeUnpublished ? null : true;
       if (categoryId === undefined || categoryId === null || categoryId === '') {
-        return store.listEquipment({ categoryId: null });
+        return store.listEquipment({ categoryId: null, published });
       }
       const identifier = parseIdentifier(categoryId, 'El filtro categoryId');
       await requireCategory(identifier);
-      return store.listEquipment({ categoryId: identifier });
+      return store.listEquipment({ categoryId: identifier, published });
     },
 
-    async getEquipment(id) {
+    async getEquipment(id, { includeUnpublished = false } = {}) {
       const equipment = await store.findEquipment(parseIdentifier(id, 'El identificador del equipo'));
-      if (!equipment) {
+      if (!equipment || (!includeUnpublished && !equipment.published)) {
         throw notFound('El equipo indicado no existe.');
       }
       return equipment;
@@ -145,10 +204,18 @@ export function createInventory({ store }) {
 
     async createEquipment(body) {
       const categoryId = parseIdentifier(body.categoryId, 'El identificador de la categoría');
-      const name = requireText(body.name, 'El nombre del equipo', limits.equipmentName);
-      const description = present(body, 'description') ? optionalDescription(body.description) : '';
+      const equipment = {
+        categoryId,
+        name: requireText(body.name, 'El nombre del equipo', limits.equipmentName),
+        description: present(body, 'description') ? optionalDescription(body.description) : '',
+        brand: optionalText(body.brand, 'La marca', limits.equipmentBrand),
+        model: optionalText(body.model, 'El modelo', limits.equipmentModel),
+        dailyRateCents: optionalDailyRate(body.dailyRateCents),
+        imageUrl: optionalImageUrl(body.imageUrl),
+        published: present(body, 'published') ? requireFlag(body.published, 'La publicación') : true,
+      };
       await requireCategory(categoryId);
-      return store.createEquipment({ categoryId, name, description });
+      return store.createEquipment(equipment);
     },
 
     async updateEquipment(id, body) {
@@ -163,8 +230,25 @@ export function createInventory({ store }) {
       if (present(body, 'description')) {
         patch.description = optionalDescription(body.description);
       }
+      if (present(body, 'brand')) {
+        patch.brand = optionalText(body.brand, 'La marca', limits.equipmentBrand);
+      }
+      if (present(body, 'model')) {
+        patch.model = optionalText(body.model, 'El modelo', limits.equipmentModel);
+      }
+      if (present(body, 'dailyRateCents')) {
+        patch.dailyRateCents = optionalDailyRate(body.dailyRateCents);
+      }
+      if (present(body, 'imageUrl')) {
+        patch.imageUrl = optionalImageUrl(body.imageUrl);
+      }
+      if (present(body, 'published')) {
+        patch.published = requireFlag(body.published, 'La publicación');
+      }
       if (Object.keys(patch).length === 0) {
-        throw invalidRequest('La solicitud no indica ningún cambio. Envía categoryId, name o description.');
+        throw invalidRequest(
+          'La solicitud no indica ningún cambio. Envía categoryId, name, description, brand, model, dailyRateCents, imageUrl o published.',
+        );
       }
       if (patch.categoryId !== undefined) {
         await requireCategory(patch.categoryId);

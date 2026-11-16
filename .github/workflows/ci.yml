@@ -42,10 +42,10 @@ jobs:
           psql_query() {
             docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
           }
-          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql', '003-accounts.sql')"
-          test "$(psql_query "$applied")" = 3
+          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql', '003-accounts.sql', '004-catalog-details.sql')"
+          test "$(psql_query "$applied")" = 4
           docker compose run --rm migrate
-          test "$(psql_query "$applied")" = 3
+          test "$(psql_query "$applied")" = 4
           test "$(psql_query "SELECT to_regnamespace('audiovisual') IS NOT NULL")" = t
       - name: Comprobar la unicidad del inventario en PostgreSQL
         run: |

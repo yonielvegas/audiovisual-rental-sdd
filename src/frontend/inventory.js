@@ -18,7 +18,7 @@ const state = {
   units: [],
   filters: {
     categories: { search: '' },
-    equipment: { search: '', categoryId: '' },
+    equipment: { search: '', categoryId: '', published: '' },
     units: { search: '', equipmentId: '', active: '' },
   },
 };
@@ -27,6 +27,11 @@ const pageStatus = el('#inventory-status');
 const toasts = el('#toasts');
 
 const count = (total, singular, plural) => `${total} ${total === 1 ? singular : plural}`;
+
+// La tarifa viaja en céntimos enteros; aquí solo se da formato para mostrarla.
+const formatRate = (rate) => (rate
+  ? new Intl.NumberFormat('es', { style: 'currency', currency: rate.currency }).format(rate.cents / 100)
+  : 'Sin fijar');
 
 const normalize = (value) => String(value ?? '')
   .toLocaleLowerCase('es')
@@ -340,12 +345,15 @@ async function removeCategory(category) {
 // --- Equipos -------------------------------------------------------------
 
 function visibleEquipment() {
-  const { search, categoryId } = state.filters.equipment;
+  const { search, categoryId, published } = state.filters.equipment;
   const term = normalize(search);
   return state.equipment.filter((item) => {
     if (categoryId && String(item.category.id) !== categoryId) return false;
+    if (published === 'published' && !item.published) return false;
+    if (published === 'unpublished' && item.published) return false;
     if (!term) return true;
-    return normalize(item.name).includes(term) || normalize(item.description).includes(term);
+    return [item.name, item.description, item.brand, item.model]
+      .some((field) => normalize(field).includes(term));
   });
 }
 
@@ -353,10 +361,13 @@ function renderEquipment() {
   const rows = visibleEquipment();
   renderTable('equipment', rows, (item) => {
     const row = document.createElement('tr');
+    row.dataset.active = String(item.published);
     cell(row, 'Nombre', item.name).classList.add('cell-strong');
     cell(row, 'Categoría', item.category.name);
-    cell(row, 'Descripción', item.description || '—').classList.add('cell-muted');
+    cell(row, 'Marca y modelo', [item.brand, item.model].filter(Boolean).join(' ') || '—').classList.add('cell-muted');
+    cell(row, 'Tarifa/día', formatRate(item.dailyRate));
     cell(row, 'Unidades activas', String(item.activeUnits));
+    cell(row, 'Estado', badge(item.published ? 'Publicado' : 'Sin publicar', item.published ? 'ok' : 'muted'));
     cell(row, 'Acciones', actions(
       actionButton({ label: 'Editar', icon: '#icon-edit', onClick: () => openEquipmentDialog(item) }),
       actionButton({ label: 'Eliminar', icon: '#icon-trash', variant: 'danger', onClick: () => removeEquipment(item) }),
@@ -375,6 +386,12 @@ function openEquipmentDialog(item) {
   el('#equipment-category').value = item ? String(item.category.id) : '';
   el('#equipment-name').value = item?.name ?? '';
   el('#equipment-description').value = item?.description ?? '';
+  el('#equipment-brand').value = item?.brand ?? '';
+  el('#equipment-model').value = item?.model ?? '';
+  // El formulario trabaja en unidades monetarias y convierte a céntimos al enviar.
+  el('#equipment-rate').value = item?.dailyRate ? (item.dailyRate.cents / 100).toFixed(2) : '';
+  el('#equipment-image').value = item?.imageUrl ?? '';
+  el('#equipment-published').checked = item ? item.published : true;
   openDialog(dialogs.equipment);
 }
 
@@ -520,10 +537,17 @@ el('#equipment-form').addEventListener('submit', (event) => {
   const form = event.currentTarget;
   const id = form.dataset.id;
   const data = new FormData(form);
+  const rate = String(data.get('dailyRate') ?? '').trim();
   const payload = {
     categoryId: Number(data.get('categoryId')),
     name: data.get('name'),
     description: data.get('description') ?? '',
+    brand: data.get('brand') ?? '',
+    model: data.get('model') ?? '',
+    // Se redondea al céntimo para no arrastrar errores de coma flotante.
+    dailyRateCents: rate === '' ? null : Math.round(Number(rate) * 100),
+    imageUrl: String(data.get('imageUrl') ?? '').trim() || null,
+    published: form.querySelector('#equipment-published').checked,
   };
   submitForm(dialogs.equipment, form, async () => {
     const { equipment } = id
@@ -570,6 +594,7 @@ const controls = [
   ['#search-categories', 'categories', 'search', renderCategories],
   ['#search-equipment', 'equipment', 'search', renderEquipment],
   ['#filter-equipment-category', 'equipment', 'categoryId', renderEquipment],
+  ['#filter-equipment-published', 'equipment', 'published', renderEquipment],
   ['#search-units', 'units', 'search', renderUnits],
   ['#filter-units-equipment', 'units', 'equipmentId', renderUnits],
   ['#filter-units-state', 'units', 'active', renderUnits],

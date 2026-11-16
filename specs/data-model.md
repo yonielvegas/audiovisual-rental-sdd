@@ -7,7 +7,7 @@ Modelo lógico de catálogo, disponibilidad, cuentas y reservas. Las tablas de c
 | Usuario | `id`, `username`, `email`, `password_hash`, `role`, `created_at`, `updated_at` | Nombre de usuario requerido y único, normalizado a minúsculas, con formato `^[a-z0-9][a-z0-9._-]{2,31}$`. Correo opcional, normalizado a minúsculas y único cuando se indica. Contraseña guardada solo como hash Argon2id. Rol `ADMIN` o `USER`; el registro público no concede permisos de administración. **Implementada.** |
 | Sesión | `token_hash`, `user_id`, `created_at`, `last_seen_at`, `expires_at` | Clave primaria con el SHA-256 de la credencial de sesión, nunca la credencial. Usuario referenciado con borrado en cascada. Caducidad posterior a la creación. **Implementada.** |
 | Categoría | `id`, `name`, `created_at`, `updated_at` | Nombre requerido, sin espacios al borde y de hasta 80 caracteres. Único comparando el nombre en minúsculas. **Implementada.** |
-| Equipo | `id`, `category_id`, `name`, `description`, `created_at`, `updated_at` | Categoría requerida y referenciada. Nombre requerido de hasta 120 caracteres y único dentro de su categoría. Descripción opcional de hasta 600 caracteres. **Implementada.** |
+| Equipo | `id`, `category_id`, `name`, `description`, `brand`, `model`, `daily_rate_cents`, `image_url`, `published`, `created_at`, `updated_at` | Categoría requerida y referenciada. Nombre requerido de hasta 120 caracteres y único dentro de su categoría. Descripción de hasta 600 caracteres, marca y modelo de hasta 60. Tarifa diaria en céntimos enteros, opcional y no negativa. Imagen opcional, ruta del mismo origen o dirección https. Publicado por omisión. **Implementada.** |
 | Unidad física | `id`, `equipment_id`, `inventory_code`, `active`, `created_at`, `updated_at` | Equipo requerido y referenciado. Código único en todo el inventario con formato `^[A-Z0-9][A-Z0-9-]{2,23}$`. Activa por omisión. **Implementada.** |
 | Reserva | `id`, `user_id`, `unit_id`, `starts_at`, `ends_at`, `status`, `created_at`, `cancelled_at` | Usuario y unidad referenciados. Inicio anterior al fin. Estado `confirmed` o `cancelled`. |
 
@@ -18,6 +18,14 @@ Una categoría agrupa equipos, un equipo agrupa unidades físicas y cada reserva
 `units.id` es el identificador estable: se genera con `GENERATED ALWAYS AS IDENTITY`, no cambia y no se reutiliza, de modo que una reserva puede referenciarlo con una clave foránea. El inventario no ofrece borrado, así que ninguna reserva histórica pierde su unidad; una unidad fuera de servicio pasa a `active = false` y conserva su fila.
 
 `inventory_code` es el identificador legible de la etiqueta física y un índice único lo protege en todo el inventario, no solo dentro de un equipo (RN-01). La aplicación lo normaliza a mayúsculas antes de escribirlo, así que dos escrituras que solo difieren en mayúsculas o espacios compiten por el mismo valor y una de ellas recibe un conflicto. Como el personal puede corregir un código mal etiquetado, no debe usarse como clave foránea. Las garantías completas están en [el contrato de inventario](../docs/inventory-contract.md).
+
+## Presentación del catálogo
+
+Marca, modelo, tarifa e imagen son atributos del **equipo**, no de la unidad física: dos unidades del mismo equipo comparten modelo y tarifa y se distinguen por su código de inventario (RN-01). Si en el futuro una unidad concreta necesitara su propia tarifa, el campo bajaría a `units` sin romper lo ya guardado.
+
+`daily_rate_cents` guarda céntimos enteros para no depender de la aritmética en coma flotante, y el MVP opera en una sola moneda, que el contrato acompaña al dato. `NULL` significa que la tarifa todavía no está fijada, que no es lo mismo que una tarifa de cero: el catálogo muestra «Tarifa por confirmar» en el primer caso y un importe en el segundo.
+
+`published` controla la visibilidad pública sin borrar nada. Un equipo despublicado desaparece del catálogo y de su consulta individual para quien no administra el inventario, y sigue visible y editable en la administración. No afecta a las unidades ni a su estado.
 
 ## Credenciales y sesiones
 

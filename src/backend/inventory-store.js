@@ -1,4 +1,5 @@
 import { conflict, invalidRequest } from './http.js';
+import { currency } from './inventory.js';
 
 const uniqueViolation = '23505';
 const foreignKeyViolation = '23503';
@@ -42,6 +43,11 @@ const equipmentRow = (row) => ({
   id: row.id,
   name: row.name,
   description: row.description,
+  brand: row.brand,
+  model: row.model,
+  dailyRate: row.daily_rate_cents === null ? null : { cents: row.daily_rate_cents, currency },
+  imageUrl: row.image_url,
+  published: row.published,
   category: { id: row.category_id, name: row.category_name },
   activeUnits: row.active_units,
 });
@@ -68,6 +74,11 @@ const equipmentSelect = `
   SELECT e.id,
          e.name,
          e.description,
+         e.brand,
+         e.model,
+         e.daily_rate_cents,
+         e.image_url,
+         e.published,
          c.id AS category_id,
          c.name AS category_name,
          (SELECT count(*) FROM audiovisual.units u WHERE u.equipment_id = e.id AND u.active)::int AS active_units
@@ -160,32 +171,56 @@ export function createInventoryStore({ pool }) {
       return result.rowCount > 0;
     },
 
-    async listEquipment({ categoryId = null } = {}) {
+    async listEquipment({ categoryId = null, published = null } = {}) {
       const result = await run(
-        `${equipmentSelect} WHERE ($1::int IS NULL OR e.category_id = $1) ORDER BY c.name, e.name`,
-        [categoryId],
+        `${equipmentSelect}
+          WHERE ($1::int IS NULL OR e.category_id = $1)
+            AND ($2::boolean IS NULL OR e.published = $2)
+          ORDER BY c.name, e.name`,
+        [categoryId, published],
       );
       return result.rows.map(equipmentRow);
     },
 
-    async createEquipment({ categoryId, name, description }) {
+    async createEquipment({ categoryId, name, description, brand, model, dailyRateCents, imageUrl, published }) {
       const inserted = await run(
-        'INSERT INTO audiovisual.equipment (category_id, name, description) VALUES ($1, $2, $3) RETURNING id',
-        [categoryId, name, description],
+        `INSERT INTO audiovisual.equipment
+           (category_id, name, description, brand, model, daily_rate_cents, image_url, published)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id`,
+        [categoryId, name, description, brand, model, dailyRateCents, imageUrl, published],
       );
       return findEquipment(inserted.rows[0].id);
     },
 
-    async updateEquipment(id, { categoryId, name, description }) {
+    async updateEquipment(id, patch) {
+      // La tarifa y la imagen pueden volver a NULL a propósito, así que cada
+      // campo lleva su bandera de presencia en vez de usar `coalesce`.
+      const has = (field) => Object.hasOwn(patch, field);
       const updated = await run(
         `UPDATE audiovisual.equipment
-            SET category_id = coalesce($2, category_id),
-                name = coalesce($3, name),
-                description = coalesce($4, description),
+            SET category_id = CASE WHEN $2 THEN $3::int ELSE category_id END,
+                name = CASE WHEN $4 THEN $5::text ELSE name END,
+                description = CASE WHEN $6 THEN $7::text ELSE description END,
+                brand = CASE WHEN $8 THEN $9::text ELSE brand END,
+                model = CASE WHEN $10 THEN $11::text ELSE model END,
+                daily_rate_cents = CASE WHEN $12 THEN $13::int ELSE daily_rate_cents END,
+                image_url = CASE WHEN $14 THEN $15::text ELSE image_url END,
+                published = CASE WHEN $16 THEN $17::boolean ELSE published END,
                 updated_at = now()
           WHERE id = $1
           RETURNING id`,
-        [id, categoryId ?? null, name ?? null, description ?? null],
+        [
+          id,
+          has('categoryId'), patch.categoryId ?? null,
+          has('name'), patch.name ?? null,
+          has('description'), patch.description ?? null,
+          has('brand'), patch.brand ?? null,
+          has('model'), patch.model ?? null,
+          has('dailyRateCents'), patch.dailyRateCents ?? null,
+          has('imageUrl'), patch.imageUrl ?? null,
+          has('published'), patch.published ?? null,
+        ],
       );
       return updated.rows.length ? findEquipment(updated.rows[0].id) : null;
     },

@@ -38,7 +38,7 @@ Para rehacer la cuenta administrativa sin volver a migrar, ejecuta `npm run boot
 
 ## Catálogo e inventario
 
-- [El catálogo público](http://localhost:8080/catalogo) muestra las categorías y los equipos y permite filtrar por categoría. No requiere cuenta.
+- [El catálogo público](http://localhost:8080/catalogo) presenta los equipos publicados en tarjetas con imagen, marca, modelo, descripción, tarifa de alquiler por día y unidades en servicio. Incluye buscador por nombre, marca o modelo, filtro por categoría, ordenamiento y una ficha con el detalle completo. No requiere cuenta. El recuento de unidades refleja el inventario y todavía no descuenta reservas por fechas, que corresponden a RF-04.
 - [La administración del inventario](http://localhost:8080/inventario) registra categorías, equipos y unidades físicas. Requiere una sesión con rol `ADMIN`.
 
 Las operaciones administrativas de la API usan la cookie de sesión que devuelve el inicio de sesión:

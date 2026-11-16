@@ -420,3 +420,120 @@ test('exige rol de administración para borrar', async (context) => {
 
   assert.equal((await admin.delete('/api/categories/1')).status, 204);
 });
+
+// RF-02. Datos de presentación del catálogo: marca, modelo, tarifa e imagen.
+test('guarda y publica marca, modelo, tarifa e imagen del equipo', async (context) => {
+  const { client, admin } = await withAdmin(context, { seed: { categories: [{ name: 'Cámaras' }] } });
+
+  const created = await admin.post('/api/equipment', {
+    body: {
+      categoryId: 1,
+      name: 'Cámara de cine compacta',
+      description: 'Cuerpo con montura intercambiable.',
+      brand: '  Sony  ',
+      model: 'FX3',
+      dailyRateCents: 4500,
+      imageUrl: '/imagenes/fx3.webp',
+    },
+  });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.equipment.brand, 'Sony');
+  assert.equal(created.body.equipment.model, 'FX3');
+  assert.deepEqual(created.body.equipment.dailyRate, { cents: 4500, currency: 'USD' });
+  assert.equal(created.body.equipment.imageUrl, '/imagenes/fx3.webp');
+  assert.equal(created.body.equipment.published, true);
+
+  // El catálogo público publica los mismos datos sin requerir sesión.
+  const published = await client.get('/api/equipment');
+  assert.deepEqual(published.body.equipment[0].dailyRate, { cents: 4500, currency: 'USD' });
+  assert.equal(published.body.equipment[0].brand, 'Sony');
+});
+
+test('deja la tarifa y la imagen sin fijar cuando no se indican', async (context) => {
+  const { admin } = await withAdmin(context, { seed: { categories: [{ name: 'Cámaras' }] } });
+
+  const created = await admin.post('/api/equipment', { body: { categoryId: 1, name: 'Cámara A' } });
+  assert.equal(created.body.equipment.dailyRate, null);
+  assert.equal(created.body.equipment.imageUrl, null);
+  assert.equal(created.body.equipment.brand, '');
+  assert.equal(created.body.equipment.model, '');
+
+  // Una tarifa de cero es un dato distinto de «todavía no fijada».
+  const free = await admin.patch('/api/equipment/1', { body: { dailyRateCents: 0 } });
+  assert.deepEqual(free.body.equipment.dailyRate, { cents: 0, currency: 'USD' });
+
+  // Y se puede volver a dejar sin fijar.
+  const cleared = await admin.patch('/api/equipment/1', { body: { dailyRateCents: null } });
+  assert.equal(cleared.body.equipment.dailyRate, null);
+});
+
+test('rechaza tarifas e imágenes con formato inválido', async (context) => {
+  const { admin } = await withAdmin(context, {
+    seed: { categories: [{ name: 'Cámaras' }], equipment: [{ categoryId: 1, name: 'Cámara A' }] },
+  });
+
+  for (const dailyRateCents of [-1, 12.5, '45,00', 100000001, true]) {
+    const response = await admin.patch('/api/equipment/1', { body: { dailyRateCents } });
+    assert.equal(response.status, 400, `La tarifa ${JSON.stringify(dailyRateCents)} debe rechazarse`);
+    assert.equal(response.body.error.code, 'invalid_daily_rate');
+  }
+
+  // Solo se admite una ruta del mismo origen o una dirección https.
+  for (const imageUrl of ['http://ejemplo.com/foto.jpg', 'javascript:alert(1)', 'ejemplo.com/foto.jpg', 'data:image/png;base64,AA']) {
+    const response = await admin.patch('/api/equipment/1', { body: { imageUrl } });
+    assert.equal(response.status, 400, `La imagen ${imageUrl} debe rechazarse`);
+    assert.equal(response.body.error.code, 'invalid_image_url');
+  }
+
+  assert.equal((await admin.get('/api/equipment/1')).body.equipment.imageUrl, null);
+});
+
+test('oculta del catálogo público los equipos despublicados', async (context) => {
+  const { client, admin } = await withAdmin(context, {
+    seed: {
+      categories: [{ name: 'Cámaras' }],
+      equipment: [{ categoryId: 1, name: 'Cámara visible' }, { categoryId: 1, name: 'Cámara oculta' }],
+    },
+  });
+
+  const hidden = await admin.patch('/api/equipment/2', { body: { published: false } });
+  assert.equal(hidden.status, 200);
+  assert.equal(hidden.body.equipment.published, false);
+
+  // Sin sesión solo se ve lo publicado, también al filtrar por categoría.
+  assert.deepEqual((await client.get('/api/equipment')).body.equipment.map(({ name }) => name), ['Cámara visible']);
+  assert.deepEqual((await client.get('/api/equipment?categoryId=1')).body.equipment.map(({ name }) => name), ['Cámara visible']);
+  assert.equal((await client.get('/api/equipment/2')).status, 404);
+
+  // Una cuenta sin permisos tampoco lo ve.
+  const member = await client.as('member');
+  assert.equal((await member.get('/api/equipment/2')).status, 404);
+
+  // La administración sigue viéndolo para poder volver a publicarlo.
+  assert.equal((await admin.get('/api/equipment')).body.equipment.length, 2);
+  assert.equal((await admin.get('/api/equipment/2')).status, 200);
+
+  const shown = await admin.patch('/api/equipment/2', { body: { published: true } });
+  assert.equal(shown.body.equipment.published, true);
+  assert.equal((await client.get('/api/equipment')).body.equipment.length, 2);
+});
+
+test('mantiene el inventario como única fuente del catálogo', async (context) => {
+  const { client, admin } = await withAdmin(context, {
+    seed: {
+      categories: [{ name: 'Cámaras' }],
+      equipment: [{ categoryId: 1, name: 'Cámara A' }],
+      units: [{ equipmentId: 1, inventoryCode: 'CAM-001' }, { equipmentId: 1, inventoryCode: 'CAM-002' }],
+    },
+  });
+
+  assert.equal((await client.get('/api/equipment')).body.equipment[0].activeUnits, 2);
+
+  // Retirar una unidad se refleja de inmediato en el recuento público.
+  await admin.patch('/api/units/1', { body: { active: false } });
+  assert.equal((await client.get('/api/equipment')).body.equipment[0].activeUnits, 1);
+
+  // Y renombrar el equipo también.
+  await admin.patch('/api/equipment/1', { body: { name: 'Cámara renombrada' } });
+  assert.equal((await client.get('/api/equipment')).body.equipment[0].name, 'Cámara renombrada');
+});

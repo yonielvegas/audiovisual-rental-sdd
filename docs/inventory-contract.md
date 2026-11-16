@@ -133,7 +133,17 @@ cuenta administrativa.
 | `POST /api/units` · `PATCH /api/units/{id}` | Administrativo | `201` o `200 { "unit" }` |
 
 `activeUnits` cuenta las unidades activas del equipo. Es inventario, no
-disponibilidad: no considera reservas ni intervalos.
+disponibilidad: no considera reservas ni intervalos. Reservas es quien debe
+descontarlas al calcular la disponibilidad de RF-04.
+
+El equipo lleva además `brand`, `model`, `dailyRate` (`{ cents, currency }` o
+`null` cuando la tarifa no está fijada), `imageUrl` y `published`. La tarifa es
+el dato que Reservas necesitará para presentar el importe de una reserva; los
+céntimos son enteros, así que un cálculo por días se hace en enteros y solo se
+da formato al mostrarlo. `published` controla la visibilidad pública del
+catálogo y **no** limita lo que Reservas puede reservar: una unidad activa de un
+equipo despublicado sigue siendo reservable para quien ya tiene su enlace, de
+modo que despublicar no rompe una reserva en curso.
 
 ## 7. Errores
 

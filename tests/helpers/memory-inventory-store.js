@@ -1,4 +1,5 @@
 import { conflict } from '../../src/backend/http.js';
+import { currency } from '../../src/backend/inventory.js';
 
 /**
  * Almacén de inventario en memoria con las mismas reglas de unicidad y el mismo
@@ -26,6 +27,11 @@ export function createMemoryInventoryStore(seed = {}) {
       id: row.id,
       name: row.name,
       description: row.description,
+      brand: row.brand,
+      model: row.model,
+      dailyRate: row.dailyRateCents === null ? null : { cents: row.dailyRateCents, currency },
+      imageUrl: row.imageUrl,
+      published: row.published,
       category: { id: category.id, name: category.name },
       activeUnits: [...units.values()].filter((unit) => unit.equipmentId === row.id && unit.active).length,
     };
@@ -50,12 +56,15 @@ export function createMemoryInventoryStore(seed = {}) {
     return categoryView(row);
   }
 
-  function insertEquipment({ categoryId, name, description }) {
+  const equipmentDefaults = { brand: '', model: '', dailyRateCents: null, imageUrl: null, published: true };
+
+  function insertEquipment(input) {
+    const { categoryId, name } = input;
     const taken = [...equipment.values()].some(
       (row) => row.categoryId === categoryId && row.name.toLowerCase() === name.toLowerCase(),
     );
     if (taken) throw conflict('equipment_name_taken', 'La categoría ya tiene un equipo con ese nombre.');
-    const row = { id: next.equipment++, categoryId, name, description };
+    const row = { id: next.equipment++, ...equipmentDefaults, ...input };
     equipment.set(row.id, row);
     return equipmentView(row);
   }
@@ -103,9 +112,10 @@ export function createMemoryInventoryStore(seed = {}) {
       return categories.delete(id);
     },
 
-    async listEquipment({ categoryId = null } = {}) {
+    async listEquipment({ categoryId = null, published = null } = {}) {
       return [...equipment.values()]
-        .filter((row) => categoryId === null || row.categoryId === categoryId)
+        .filter((row) => (categoryId === null || row.categoryId === categoryId)
+          && (published === null || row.published === published))
         .map(equipmentView)
         .sort((a, b) => a.category.name.localeCompare(b.category.name, 'es') || byName(a, b));
     },
@@ -125,7 +135,9 @@ export function createMemoryInventoryStore(seed = {}) {
         (other) => other.id !== id && other.categoryId === categoryId && other.name.toLowerCase() === name.toLowerCase(),
       );
       if (taken) throw conflict('equipment_name_taken', 'La categoría ya tiene un equipo con ese nombre.');
-      Object.assign(row, { name, categoryId, description: patch.description ?? row.description });
+      // Solo se aplican los campos presentes: la tarifa y la imagen pueden
+      // volver a null a propósito.
+      Object.assign(row, patch, { name, categoryId });
       return equipmentView(row);
     },
 

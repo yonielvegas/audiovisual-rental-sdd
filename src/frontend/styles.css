@@ -438,8 +438,6 @@ a:focus-visible {
   list-style: none;
 }
 
-.equipment-card { display: grid; align-content: start; gap: 0.45rem; }
-
 .card-tag {
   color: var(--accent);
   font-size: 0.76rem;
@@ -449,8 +447,6 @@ a:focus-visible {
 }
 
 .card-title { margin: 0; font-size: 1.22rem; font-weight: 760; letter-spacing: -0.03em; }
-.card-text { color: var(--text-muted); }
-.card-meta { margin-block-start: 0.35rem; color: var(--text); font-size: 0.85rem; font-weight: 680; }
 
 .form-panel { display: grid; gap: 0.85rem; }
 
@@ -882,4 +878,152 @@ textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
   .cell-muted { max-width: none; }
   .toolbar > .button { margin-inline-start: 0; width: 100%; }
   .filter-field, .search-field { flex-basis: 100%; }
+}
+
+/* Catálogo público: controles, tarjetas con imagen uniforme y ficha. */
+
+.catalog-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+}
+
+.catalog-controls .field { margin: 0; }
+.catalog-controls .search-field { flex: 1 1 18rem; }
+.catalog-controls .filter-field { flex: 0 1 14rem; }
+
+.field-label {
+  margin: 0 0 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 680;
+}
+
+.filter-list-wrap { flex: 1 1 100%; }
+.filter-list-wrap .filter-list { margin-block-start: 0; }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr));
+  gap: 1.1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.equipment-card { padding: 0; overflow: hidden; }
+
+/* La tarjeta entera es el control que abre la ficha. */
+.card-button {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  align-content: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.card-button:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+.equipment-card:hover { border-color: var(--accent); }
+
+/* Proporción fija: todas las imágenes ocupan el mismo espacio aunque difieran. */
+.card-media {
+  position: relative;
+  display: grid;
+  aspect-ratio: 16 / 10;
+  place-items: center;
+  overflow: hidden;
+  border-block-end: 1px solid var(--border);
+  background:
+    linear-gradient(135deg, rgb(53 245 194 / 12%), rgb(122 73 189 / 18%)),
+    var(--surface-sunken);
+}
+
+.card-media img { width: 100%; height: 100%; object-fit: cover; }
+
+.card-placeholder {
+  width: 3rem;
+  height: 3rem;
+  color: var(--text-muted);
+  fill: none;
+  opacity: 0.55;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.card-body {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.card-sub { color: var(--text-muted); font-size: 0.86rem; font-weight: 680; }
+
+.card-text {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-block-start: 0.55rem;
+  padding-block-start: 0.7rem;
+  border-block-start: 1px solid var(--border);
+}
+
+.card-price { color: var(--accent); font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em; }
+
+.modal-detail { width: min(100% - 2rem, 38rem); }
+
+.detail-media {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+}
+
+.detail-media img { width: 100%; height: 100%; object-fit: cover; }
+.detail-description { color: var(--text); }
+.detail-description.is-muted { color: var(--text-muted); font-style: italic; }
+
+.detail-list { display: grid; gap: 0.5rem; margin: 0; }
+
+.detail-list > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-block: 0.45rem;
+  border-block-start: 1px solid var(--border);
+}
+
+.detail-list dt { color: var(--text-muted); font-size: 0.84rem; font-weight: 700; }
+.detail-list dd { margin: 0; font-weight: 700; }
+
+.field-pair { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+.field-pair .field { flex: 1 1 10rem; margin: 0; }
+
+.field-check { display: flex; align-items: center; gap: 0.6rem; margin: 0; }
+.field-check input { width: 1.1rem; height: 1.1rem; min-height: 0; accent-color: var(--accent); }
+.field-check label { color: var(--text); font-size: 0.92rem; font-weight: 640; }
+
+@media (max-width: 48rem) {
+  .catalog-controls .search-field, .catalog-controls .filter-field { flex-basis: 100%; }
 }
