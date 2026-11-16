@@ -1,0 +1,101 @@
+import { readJsonBody, sendJson } from './http.js';
+
+/**
+ * Tabla de rutas del catálogo e inventario (specs/api.md).
+ *
+ * Las rutas públicas de RF-02 se consultan sin sesión. Las marcadas con
+ * `admin: true` exigen una cuenta autorizada antes de leer el cuerpo, de modo
+ * que una petición sin permisos nunca llega a modificar el inventario.
+ */
+export function inventoryRoutes(inventory) {
+  return [
+    ['/api/categories', {
+      GET: {
+        handler: async ({ response }) => {
+          sendJson(response, 200, { categories: await inventory.listCategories() });
+        },
+      },
+      POST: {
+        admin: true,
+        handler: async ({ request, response }) => {
+          const category = await inventory.createCategory(await readJsonBody(request));
+          sendJson(response, 201, { category }, { Location: `/api/categories/${category.id}` });
+        },
+      },
+    }],
+
+    ['/api/categories/:id', {
+      PATCH: {
+        admin: true,
+        handler: async ({ request, response, params }) => {
+          const category = await inventory.updateCategory(params.id, await readJsonBody(request));
+          sendJson(response, 200, { category });
+        },
+      },
+    }],
+
+    ['/api/equipment', {
+      GET: {
+        handler: async ({ response, query }) => {
+          const equipment = await inventory.listEquipment({ categoryId: query.get('categoryId') });
+          sendJson(response, 200, { equipment });
+        },
+      },
+      POST: {
+        admin: true,
+        handler: async ({ request, response }) => {
+          const equipment = await inventory.createEquipment(await readJsonBody(request));
+          sendJson(response, 201, { equipment }, { Location: `/api/equipment/${equipment.id}` });
+        },
+      },
+    }],
+
+    ['/api/equipment/:id', {
+      GET: {
+        handler: async ({ response, params }) => {
+          sendJson(response, 200, { equipment: await inventory.getEquipment(params.id) });
+        },
+      },
+      PATCH: {
+        admin: true,
+        handler: async ({ request, response, params }) => {
+          const equipment = await inventory.updateEquipment(params.id, await readJsonBody(request));
+          sendJson(response, 200, { equipment });
+        },
+      },
+    }],
+
+    ['/api/units', {
+      GET: {
+        admin: true,
+        handler: async ({ response, query }) => {
+          const units = await inventory.listUnits({ equipmentId: query.get('equipmentId') });
+          sendJson(response, 200, { units });
+        },
+      },
+      POST: {
+        admin: true,
+        handler: async ({ request, response }) => {
+          const unit = await inventory.createUnit(await readJsonBody(request));
+          sendJson(response, 201, { unit }, { Location: `/api/units/${unit.id}` });
+        },
+      },
+    }],
+
+    ['/api/units/:id', {
+      GET: {
+        admin: true,
+        handler: async ({ response, params }) => {
+          sendJson(response, 200, { unit: await inventory.getUnit(params.id) });
+        },
+      },
+      PATCH: {
+        admin: true,
+        handler: async ({ request, response, params }) => {
+          const unit = await inventory.updateUnit(params.id, await readJsonBody(request));
+          sendJson(response, 200, { unit });
+        },
+      },
+    }],
+  ];
+}

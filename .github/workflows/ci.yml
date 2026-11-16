@@ -31,15 +31,31 @@ jobs:
         run: |
           cp .env.example .env
           docker compose up --build --wait --wait-timeout 90
-      - name: Comprobar inicio, recursos y salud
-        run: npm run test:smoke
-      - name: Comprobar la migración inicial y su segunda ejecución
+      - name: Comprobar inicio, recursos, catálogo e inventario
         run: |
-          query="SELECT COUNT(*) FROM public.schema_migrations WHERE version = '001-baseline.sql'"
-          test "$(docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$query")" = 1
+          set -a
+          . ./.env
+          set +a
+          npm run test:smoke
+      - name: Comprobar las migraciones y su segunda ejecución
+        run: |
+          psql_query() {
+            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
+          }
+          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql')"
+          test "$(psql_query "$applied")" = 2
           docker compose run --rm migrate
-          test "$(docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$query")" = 1
-          test "$(docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "SELECT to_regnamespace('audiovisual') IS NOT NULL")" = t
+          test "$(psql_query "$applied")" = 2
+          test "$(psql_query "SELECT to_regnamespace('audiovisual') IS NOT NULL")" = t
+      - name: Comprobar la unicidad del inventario en PostgreSQL
+        run: |
+          psql_query() {
+            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
+          }
+          test "$(psql_query "SELECT indisunique FROM pg_index WHERE indexrelid = 'audiovisual.units_inventory_code_unique'::regclass")" = t
+          duplicated="SELECT COUNT(*) FROM (SELECT inventory_code FROM audiovisual.units GROUP BY inventory_code HAVING COUNT(*) > 1) AS repetidos"
+          test "$(psql_query "$duplicated")" = 0
+          test "$(psql_query "SELECT COUNT(*) >= 2 FROM audiovisual.units")" = t
       - name: Comprobar la respuesta con PostgreSQL detenido
         run: |
           docker compose stop db

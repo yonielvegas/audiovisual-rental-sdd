@@ -1,0 +1,95 @@
+<section class="inventory shell" aria-labelledby="inventory-title">
+  <header class="panel glass catalog-intro">
+    <h1 id="inventory-title">Administración del inventario</h1>
+    <p>
+      Registra categorías, equipos y las unidades físicas que las reservas comprometen de una en una.
+      Cada unidad conserva su identificador y su código único en el inventario.
+    </p>
+  </header>
+
+  <form class="panel glass form-panel" id="access-form" autocomplete="off">
+    <h2 class="panel-title">Credencial administrativa</h2>
+    <p class="panel-hint">
+      La sesión definitiva corresponde a RF-01. Hasta entonces el backend identifica al personal autorizado
+      con la credencial configurada en el entorno del servidor.
+    </p>
+    <div class="field-row">
+      <p class="field">
+        <label for="access-token">Credencial</label>
+        <input id="access-token" name="token" type="password" autocomplete="off" required>
+      </p>
+      <div class="field-actions">
+        <button class="button button-primary" type="submit">Usar credencial</button>
+        <button class="button button-secondary" type="button" id="access-clear">Olvidar</button>
+      </div>
+    </div>
+    <p id="access-status" class="feedback" role="status">Introduce la credencial para administrar el inventario.</p>
+  </form>
+
+  <section class="panel glass form-panel" aria-labelledby="categories-title">
+    <h2 class="panel-title" id="categories-title">Categorías</h2>
+    <form id="category-form" autocomplete="off">
+      <div class="field-row">
+        <p class="field">
+          <label for="category-name">Nombre</label>
+          <input id="category-name" name="name" type="text" maxlength="80" required>
+        </p>
+        <div class="field-actions">
+          <button class="button button-primary" type="submit">Crear categoría</button>
+        </div>
+      </div>
+    </form>
+    <p id="category-status" class="feedback" role="status" hidden></p>
+    <ul id="category-list" class="record-list"></ul>
+  </section>
+
+  <section class="panel glass form-panel" aria-labelledby="equipment-title">
+    <h2 class="panel-title" id="equipment-title">Equipos</h2>
+    <form id="equipment-form" autocomplete="off">
+      <div class="field-row">
+        <p class="field">
+          <label for="equipment-category">Categoría</label>
+          <select id="equipment-category" name="categoryId" required></select>
+        </p>
+        <p class="field">
+          <label for="equipment-name">Nombre</label>
+          <input id="equipment-name" name="name" type="text" maxlength="120" required>
+        </p>
+        <p class="field field-wide">
+          <label for="equipment-description">Descripción</label>
+          <input id="equipment-description" name="description" type="text" maxlength="600">
+        </p>
+        <div class="field-actions">
+          <button class="button button-primary" type="submit">Crear equipo</button>
+        </div>
+      </div>
+    </form>
+    <p id="equipment-status" class="feedback" role="status" hidden></p>
+    <ul id="equipment-admin-list" class="record-list"></ul>
+  </section>
+
+  <section class="panel glass form-panel" aria-labelledby="units-title">
+    <h2 class="panel-title" id="units-title">Unidades físicas</h2>
+    <form id="unit-form" autocomplete="off">
+      <div class="field-row">
+        <p class="field">
+          <label for="unit-equipment">Equipo</label>
+          <select id="unit-equipment" name="equipmentId" required></select>
+        </p>
+        <p class="field">
+          <label for="unit-code">Código de inventario</label>
+          <input id="unit-code" name="inventoryCode" type="text" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9-]{2,23}"
+                 placeholder="CAM-001" required>
+        </p>
+        <div class="field-actions">
+          <button class="button button-primary" type="submit">Registrar unidad</button>
+        </div>
+      </div>
+      <p class="panel-hint">De 3 a 24 caracteres entre letras, dígitos y guiones. El código se guarda en mayúsculas.</p>
+    </form>
+    <p id="unit-status" class="feedback" role="status" hidden></p>
+    <ul id="unit-list" class="record-list"></ul>
+  </section>
+</section>
+
+<script type="module" src="/inventory.js"></script>

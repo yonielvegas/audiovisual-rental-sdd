@@ -1,7 +1,27 @@
-<section class="page-section shell" aria-labelledby="catalog-title">
-  <div class="glass empty-state">
+<section class="catalog shell" aria-labelledby="catalog-title">
+  <header class="panel glass catalog-intro">
     <h1 id="catalog-title">Catálogo de equipos</h1>
-    <p>El catálogo será desarrollado por Eric Ruiz en la <a href="https://github.com/yonielvegas/audiovisual-rental-sdd/issues/4">Issue #4</a>.</p>
-    <a class="button button-secondary" href="/"><span aria-hidden="true">←</span> Volver al inicio</a>
-  </div>
+    <p>Consulta las categorías y los equipos publicados. Explorar el catálogo no requiere una cuenta.</p>
+  </header>
+
+  <nav class="panel glass catalog-filters" aria-labelledby="filters-title">
+    <h2 id="filters-title" class="panel-title">Categorías</h2>
+    <ul id="category-filters" class="filter-list">
+      <li><button class="chip" type="button" data-category="" aria-pressed="true">Todas</button></li>
+    </ul>
+  </nav>
+
+  <p id="catalog-status" class="feedback" role="status">Cargando el catálogo.</p>
+  <ul id="equipment-list" class="card-grid" aria-labelledby="catalog-title"></ul>
 </section>
+
+<template id="equipment-card">
+  <li class="panel glass equipment-card">
+    <p class="card-tag" data-field="category"></p>
+    <h3 class="card-title" data-field="name"></h3>
+    <p class="card-text" data-field="description"></p>
+    <p class="card-meta" data-field="units"></p>
+  </li>
+</template>
+
+<script type="module" src="/catalog.js"></script>

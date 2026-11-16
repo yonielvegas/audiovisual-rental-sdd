@@ -24,9 +24,9 @@ Las credenciales y el puerto se configuran por variables de entorno. `.env.examp
 
 ## Evolución funcional propuesta
 
-- Catálogo e inventario usarán rutas y consultas separadas de la infraestructura común. Cada unidad tendrá un código único.
+- Catálogo e inventario ya usan rutas y consultas separadas de la infraestructura común: una tabla de rutas declarativa (`src/backend/router.js`), la validación y las operaciones del dominio (`src/backend/inventory.js`) y el acceso a PostgreSQL (`src/backend/inventory-store.js`). Cada unidad tiene un identificador estable y un código único.
 - La disponibilidad representará una lectura en un instante; la confirmación de la reserva se decidirá al escribir en la base de datos.
 - Una restricción de exclusión GiST sobre la unidad y un rango `tstzrange` evitará solapamientos activos incluso con pedidos concurrentes. Se propone `btree_gist` para combinar el identificador de unidad con el rango.
-- El diseño de sesión y control de acceso se revisará con el equipo antes del trabajo protegido de catálogo y reservas. El rol administrativo se verifica en el backend.
+- El control de acceso se resuelve en un solo punto: cada ruta declara si exige rol administrativo y el backend lo verifica antes de leer el cuerpo de la petición. La identificación del actor vive aislada en `src/backend/access.js`, hoy con credenciales de entorno, y se sustituirá por la sesión que acuerde RF-01 sin tocar las rutas.
 
 Referencias técnicas: [orden de inicio de Docker Compose](https://docs.docker.com/compose/how-tos/startup-order/), [pool de node-postgres](https://node-postgres.com/apis/pool) y [restricciones de rangos de PostgreSQL](https://www.postgresql.org/docs/current/rangetypes.html#RANGETYPES-CONSTRAINT).

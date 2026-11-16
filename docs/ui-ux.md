@@ -16,8 +16,8 @@ Los colores, radios y espaciados compartidos están en [styles.css](../src/front
 
 ## Integración
 
-- **Eric, catálogo e inventario.** Implementa el catálogo en `/catalogo` con su [página temporal](../src/frontend/catalog.html) como punto de entrada. Reutiliza los componentes para tarjetas, estados vacíos y acciones de administración. [Issue #4](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/4)
-- **Yini, reservas y disponibilidad.** Usa el mismo layout y estilos para formularios de horarios, lista de reservas y mensajes de confirmación, error o conflicto. [Issue #5](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/5)
+- **Catálogo e inventario, entregados.** `/catalogo` presenta las categorías como filtros (`.chip`) y los equipos como tarjetas (`.card-grid`, `.equipment-card`). `/inventario` reúne los formularios y listas de administración (`.form-panel`, `.field-row`, `.record-list`). Ambos reutilizan `.shell`, `.glass` y los botones compartidos, y añaden a la hoja de estilos los componentes de filtro, tarjeta, formulario y registro para las siguientes pantallas. [Issue #4](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/4)
+- **Yini, reservas y disponibilidad.** Usa el mismo layout y estilos para formularios de horarios, lista de reservas y mensajes de confirmación, error o conflicto. Puedes reutilizar `.form-panel` y `.field-row` para el formulario de intervalo, `.record-list` para las reservas y `.feedback` con `data-state` para los mensajes. [Issue #5](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/5)
 - **Todas las pantallas.** Comprueba navegación por teclado, foco visible, ausencia de desbordamiento móvil, textos de estado explícitos y lectura sobre fondos translúcidos. Los nombres de acciones y los mensajes de error deben indicar qué puede hacer la persona.
 
-La landing y el catálogo provisional son referencias de implementación. El [flujo de trabajo académico](project-workflow.md) describe cómo vincular cambios, criterios, pruebas y evidencia.
+La landing, el catálogo y la administración del inventario son las referencias de implementación vigentes. El [flujo de trabajo académico](project-workflow.md) describe cómo vincular cambios, criterios, pruebas y evidencia.
