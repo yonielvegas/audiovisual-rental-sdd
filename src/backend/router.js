@@ -5,7 +5,7 @@ const reserved = /[.*+?^${}()|[\]\\]/g;
 
 function compile(template) {
   const names = [...template.matchAll(parameter)].map(([, name]) => name);
-  const source = template.replace(reserved, '\\$&').replace(parameter, '([^/]+)');
+  const source = template.replace(reserved, String.raw`\$&`).replace(parameter, '([^/]+)');
   return { pattern: new RegExp(`^${source}$`), names };
 }
 
@@ -25,7 +25,7 @@ export function matchRoute(routes, method, pathname) {
     const entry = route.methods[verb];
     if (!entry) {
       throw new HttpError(405, 'method_not_allowed', `El recurso no admite el método ${method}.`, {
-        Allow: Object.keys(route.methods).sort().join(', '),
+        Allow: Object.keys(route.methods).sort((a, b) => a.localeCompare(b)).join(', '),
       });
     }
 

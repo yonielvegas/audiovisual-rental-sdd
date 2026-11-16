@@ -44,6 +44,50 @@ function healthRoute(checkDatabase) {
   }];
 }
 
+const readMethods = new Set(['GET', 'HEAD']);
+
+function serve(request, response, status, document) {
+  response.writeHead(status, {
+    'Content-Type': document.type ?? 'text/html; charset=utf-8',
+    'Content-Length': document.content.length,
+    'X-Content-Type-Options': 'nosniff',
+    ...(document.role ? { 'Cache-Control': 'no-store' } : {}),
+  });
+  response.end(request.method === 'HEAD' ? undefined : document.content);
+}
+
+async function callApi({ routes, resolveActor, request, response, url }) {
+  const route = matchRoute(routes, request.method, url.pathname);
+  if (!route) throw routeNotFound();
+
+  // El actor solo se resuelve donde la ruta lo necesita, de modo que las
+  // consultas públicas del catálogo no consultan la sesión.
+  const actor = route.role || route.actor ? await resolveActor(request) : null;
+  if (route.role) requireRole(actor, route.role);
+
+  await route.handler({ request, response, actor, params: route.params, query: url.searchParams });
+}
+
+// Una ruta administrativa nunca se sirve sin comprobar el rol. Quien no ha
+// iniciado sesión va al acceso y vuelve después a esta página. Devuelve `true`
+// cuando ya respondió y la petición no debe seguir.
+async function guarded({ document, resolveActor, request, response, url, forbiddenPage }) {
+  if (!document.role) return false;
+
+  const actor = await resolveActor(request);
+  if (!actor) {
+    const next = encodeURIComponent(url.pathname);
+    response.writeHead(302, { Location: `/acceso?siguiente=${next}`, 'Cache-Control': 'no-store' });
+    response.end();
+    return true;
+  }
+  if (actor.role !== document.role) {
+    serve(request, response, 403, { content: forbiddenPage, role: document.role });
+    return true;
+  }
+  return false;
+}
+
 export async function createApp({
   checkDatabase,
   inventory,
@@ -84,57 +128,19 @@ export async function createApp({
     ...(inventory ? inventoryRoutes(inventory) : []),
   ]);
 
-  function serve(response, status, document) {
-    response.writeHead(status, {
-      'Content-Type': document.type ?? 'text/html; charset=utf-8',
-      'Content-Length': document.content.length,
-      'X-Content-Type-Options': 'nosniff',
-      ...(document.role ? { 'Cache-Control': 'no-store' } : {}),
-    });
-    return document.content;
-  }
-
   return createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost');
     try {
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        const route = matchRoute(apiRoutes, request.method, url.pathname);
-        if (!route) throw routeNotFound();
-
-        // El actor solo se resuelve donde la ruta lo necesita, de modo que las
-        // consultas públicas del catálogo no consultan la sesión.
-        const actor = route.role || route.actor ? await resolveActor(request) : null;
-        if (route.role) requireRole(actor, route.role);
-
-        await route.handler({ request, response, actor, params: route.params, query: url.searchParams });
+        await callApi({ routes: apiRoutes, resolveActor, request, response, url });
         return;
       }
 
       const document = documents.get(url.pathname);
-      if (document && (request.method === 'GET' || request.method === 'HEAD')) {
-        if (document.role) {
-          // Una ruta administrativa nunca se sirve sin comprobar el rol. Quien
-          // no ha iniciado sesión va al acceso y vuelve después a esta página.
-          const actor = await resolveActor(request);
-          if (!actor) {
-            const next = encodeURIComponent(url.pathname);
-            response.writeHead(302, { Location: `/acceso?siguiente=${next}`, 'Cache-Control': 'no-store' });
-            response.end();
-            return;
-          }
-          if (actor.role !== document.role) {
-            const body = serve(response, 403, { content: forbiddenPage, role: document.role });
-            response.end(request.method === 'HEAD' ? undefined : body);
-            return;
-          }
-        }
+      if (!document || !readMethods.has(request.method)) throw routeNotFound();
+      if (await guarded({ document, resolveActor, request, response, url, forbiddenPage })) return;
 
-        const body = serve(response, 200, document);
-        response.end(request.method === 'HEAD' ? undefined : body);
-        return;
-      }
-
-      throw routeNotFound();
+      serve(request, response, 200, document);
     } catch (error) {
       if (response.headersSent) {
         response.destroy();

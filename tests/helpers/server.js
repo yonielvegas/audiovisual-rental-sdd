@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { createAccounts, roles } from '../../src/backend/accounts.js';
 import { createApp } from '../../src/backend/app.js';
@@ -8,11 +9,14 @@ import { createLoginThrottle } from '../../src/backend/throttle.js';
 import { createMemoryAccountStore } from './memory-account-store.js';
 import { createMemoryInventoryStore } from './memory-inventory-store.js';
 
-// Cuentas ficticias de la suite. La contraseña real del administrador vive
-// solo en el entorno de cada instalación y nunca en el repositorio.
+// Cuentas ficticias de la suite. Las contraseñas se generan en cada ejecución,
+// de modo que ninguna queda escrita en el repositorio. La contraseña real del
+// administrador vive solo en el entorno de cada instalación.
+const inventedPassword = (label) => `ficticia-${label}-${randomUUID()}`;
+
 export const credentials = {
-  admin: { username: 'admin', password: 'contrasena-administrativa-ficticia' },
-  member: { username: 'persona.usuaria', password: 'contrasena-usuaria-ficticia' },
+  admin: { username: 'admin', password: inventedPassword('admin') },
+  member: { username: 'persona.usuaria', password: inventedPassword('persona') },
 };
 
 // Argon2id es deliberadamente costoso, así que las cuentas sembradas comparten
@@ -38,13 +42,12 @@ export async function startApp(context, {
   const inventoryStore = createMemoryInventoryStore(seed);
   const accountStore = createMemoryAccountStore();
 
-  for (const name of seedAccounts) {
-    await accountStore.seedUser({
-      username: credentials[name].username,
-      passwordHash: await hashOnce(credentials[name].password),
-      role: name === 'admin' ? roles.admin : roles.user,
-    });
-  }
+  // Las cuentas se siembran a la vez: ninguna depende de la anterior.
+  await Promise.all(seedAccounts.map(async (name) => accountStore.seedUser({
+    username: credentials[name].username,
+    passwordHash: await hashOnce(credentials[name].password),
+    role: name === 'admin' ? roles.admin : roles.user,
+  })));
 
   const accounts = createAccounts({
     store: accountStore,
@@ -77,12 +80,12 @@ export async function startApp(context, {
       if (sent) headers.Cookie = sent;
       if (body !== undefined) headers['Content-Type'] = contentType ?? 'application/json';
 
-      const response = await fetch(`${base}${path}`, {
-        method,
-        headers,
-        redirect,
-        body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body)),
-      });
+      let payload;
+      if (body !== undefined) {
+        payload = typeof body === 'string' ? body : JSON.stringify(body);
+      }
+
+      const response = await fetch(`${base}${path}`, { method, headers, redirect, body: payload });
 
       const setCookie = response.headers.getSetCookie?.() ?? [];
       for (const entry of setCookie) {

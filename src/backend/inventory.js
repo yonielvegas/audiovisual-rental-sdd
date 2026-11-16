@@ -22,7 +22,7 @@ const imageUrlPattern = /^(\/[^\s]*|https:\/\/[^\s]+)$/;
 // RN-01. El código identifica la etiqueta física de la unidad. Se acepta en
 // mayúsculas, dígitos y guiones para que sea legible sobre el equipo.
 export const inventoryCodePattern = /^[A-Z0-9][A-Z0-9-]{2,23}$/;
-const identifierPattern = /^[1-9][0-9]{0,8}$/;
+const identifierPattern = /^[1-9]\d{0,8}$/;
 
 function requireText(value, label, maximum) {
   if (typeof value !== 'string') {
@@ -79,7 +79,7 @@ function optionalText(value, label, maximum) {
 // fijada, que no es lo mismo que una tarifa de cero.
 function optionalDailyRate(value) {
   if (value === null || value === undefined || value === '') return null;
-  const cents = typeof value === 'string' && /^[0-9]+$/.test(value.trim()) ? Number(value.trim()) : value;
+  const cents = typeof value === 'string' && /^\d+$/.test(value.trim()) ? Number(value.trim()) : value;
   if (typeof cents !== 'number' || !Number.isInteger(cents) || cents < 0 || cents > maximumDailyRateCents) {
     throw invalidRequest(
       'La tarifa diaria debe enviarse como un número entero de céntimos entre 0 y 100000000.',
@@ -333,7 +333,7 @@ export function createInventory({ store }) {
 
     async findActiveUnit(id) {
       const unit = await store.findUnit(parseIdentifier(id, 'El identificador de la unidad'));
-      return unit && unit.active ? unit : null;
+      return unit?.active ? unit : null;
     },
 
     // Reservas invoca esta función dentro de su propia transacción para que la

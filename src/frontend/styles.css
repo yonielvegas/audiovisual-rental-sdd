@@ -10,6 +10,9 @@
   --accent: #35f5c2;
   --accent-hover: #79ffdb;
   --accent-ink: #061c19;
+  --danger: #ff9b7a;
+  --danger-ink: #2a0f08;
+  --surface-sunken: rgb(8 14 26 / 45%);
   --focus: #b9ffe9;
   --radius-panel: 1.25rem;
   --radius-control: 0.85rem;
@@ -22,10 +25,6 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-
-/* Los componentes declaran su propio `display`, así que el atributo hidden
-   necesita precedencia para ocultar botones y enlaces de sesión. */
-[hidden] { display: none !important; }
 
 body {
   display: flex;
@@ -426,17 +425,9 @@ a:focus-visible {
   outline-offset: 3px;
 }
 
-.feedback { color: var(--text-muted); font-size: 0.92rem; }
+.feedback { display: block; color: var(--text-muted); font-size: 0.92rem; }
 .feedback[data-state="error"] { color: #ffc48e; }
 .feedback[data-state="ready"] { color: var(--accent); }
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
-  gap: 1.1rem;
-  padding: 0;
-  list-style: none;
-}
 
 .card-tag {
   color: var(--accent);
@@ -541,12 +532,6 @@ button { cursor: pointer; }
 }
 
 /* Administración del inventario: pestañas, tablas, modales y avisos. */
-
-:root {
-  --danger: #ff9b7a;
-  --danger-ink: #2a0f08;
-  --surface-sunken: rgb(8 14 26 / 45%);
-}
 
 .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 
@@ -1027,3 +1012,9 @@ textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 @media (max-width: 48rem) {
   .catalog-controls .search-field, .catalog-controls .filter-field { flex-basis: 100%; }
 }
+
+/* Los componentes declaran su propio `display`, así que el atributo hidden
+   necesita ganarles para ocultar botones y enlaces de sesión. Esta regla cierra
+   la hoja y tiene la misma especificidad que una clase, de modo que el orden
+   basta y no hace falta `!important`. */
+[hidden] { display: none; }

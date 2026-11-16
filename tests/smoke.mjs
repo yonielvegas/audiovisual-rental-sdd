@@ -59,14 +59,15 @@ for (const [, src] of html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)) {
 }
 assert.ok(assets.length > 0, 'La página debe enlazar al menos un recurso estático');
 
-for (const { path, type } of assets) {
+// Los recursos no dependen unos de otros, así que se piden a la vez.
+await Promise.all(assets.map(async ({ path, type }) => {
   const url = new URL(path, baseUrl);
   assert.equal(url.origin, baseUrl.origin, `El recurso ${path} debe usar el mismo origen`);
   const asset = await request(url.pathname);
   assert.equal(asset.status, 200, `El recurso ${path} debe devolver HTTP 200`);
   assert.match(asset.headers.get('content-type') ?? '', type, `Tipo de contenido incorrecto en ${path}`);
   assert.ok((await asset.text()).trim(), `El recurso ${path} debe tener contenido`);
-}
+}));
 
 assert.match(html, /href="\/catalogo"[^>]*>\s*Ver catálogo/);
 const hero = await request('/hero.webp');
@@ -129,13 +130,13 @@ if (!databaseDown) {
   // Las ilustraciones viajan por el mismo origen, así que el catálogo no
   // depende de ningún servicio externo para dibujar sus tarjetas.
   const illustrations = [...new Set(complete.map(({ imageUrl }) => imageUrl))];
-  for (const path of illustrations) {
+  await Promise.all(illustrations.map(async (path) => {
     assert.ok(path.startsWith('/'), `La imagen ${path} debe servirse desde el mismo origen`);
     const image = await request(path);
     assert.equal(image.status, 200, `La imagen ${path} debe devolver HTTP 200`);
     assert.match(image.headers.get('content-type') ?? '', /^image\/svg\+xml\b/i, `Tipo incorrecto en ${path}`);
     assert.ok((await image.text()).includes('<svg'), `La imagen ${path} debe tener contenido`);
-  }
+  }));
 
   const seededCategories = await guest.json('/api/categories');
   const grouping = seededCategories.payload.categories.filter(({ equipmentCount }) => equipmentCount > 0);

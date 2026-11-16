@@ -501,28 +501,35 @@ async function toggleUnit(unit) {
 // --- Envío de los formularios -------------------------------------------
 
 async function submitForm(dialog, form, work) {
-  const error = form.querySelector('[data-dialog-error]');
+  const errorBox = form.querySelector('[data-dialog-error]');
   const submit = form.querySelector('[data-submit]');
   submit.disabled = true;
-  report(error, 'error', '');
+  report(errorBox, 'error', '');
   try {
     notify('success', await work());
     closeDialog(dialog);
     await refresh();
-  } catch (failure) {
+  } catch (error) {
     // El error se muestra dentro de la ventana para no perder lo escrito.
-    report(error, 'error', describeFailure(failure));
+    report(errorBox, 'error', describeFailure(error));
   } finally {
     submit.disabled = false;
   }
+}
+
+// `FormData` devuelve texto o un archivo. El formulario no tiene campos de
+// archivo, pero leer siempre como texto evita convertir un objeto por descuido.
+function textField(data, name) {
+  const value = data.get(name);
+  return typeof value === 'string' ? value : '';
 }
 
 el('#category-form').addEventListener('submit', (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const id = form.dataset.id;
-  const name = new FormData(form).get('name');
-  submitForm(dialogs.category, form, async () => {
+  const name = textField(new FormData(form), 'name');
+  void submitForm(dialogs.category, form, async () => {
     const { category } = id
       ? await api(`/api/categories/${id}`, { method: 'PATCH', body: { name } })
       : await api('/api/categories', { method: 'POST', body: { name } });
@@ -537,19 +544,19 @@ el('#equipment-form').addEventListener('submit', (event) => {
   const form = event.currentTarget;
   const id = form.dataset.id;
   const data = new FormData(form);
-  const rate = String(data.get('dailyRate') ?? '').trim();
+  const rate = textField(data, 'dailyRate').trim();
   const payload = {
-    categoryId: Number(data.get('categoryId')),
-    name: data.get('name'),
-    description: data.get('description') ?? '',
-    brand: data.get('brand') ?? '',
-    model: data.get('model') ?? '',
+    categoryId: Number(textField(data, 'categoryId')),
+    name: textField(data, 'name'),
+    description: textField(data, 'description'),
+    brand: textField(data, 'brand'),
+    model: textField(data, 'model'),
     // Se redondea al céntimo para no arrastrar errores de coma flotante.
     dailyRateCents: rate === '' ? null : Math.round(Number(rate) * 100),
-    imageUrl: String(data.get('imageUrl') ?? '').trim() || null,
+    imageUrl: textField(data, 'imageUrl').trim() || null,
     published: form.querySelector('#equipment-published').checked,
   };
-  submitForm(dialogs.equipment, form, async () => {
+  void submitForm(dialogs.equipment, form, async () => {
     const { equipment } = id
       ? await api(`/api/equipment/${id}`, { method: 'PATCH', body: payload })
       : await api('/api/equipment', { method: 'POST', body: payload });
@@ -564,17 +571,17 @@ el('#unit-form').addEventListener('submit', (event) => {
   const form = event.currentTarget;
   const id = form.dataset.id;
   const data = new FormData(form);
-  submitForm(dialogs.unit, form, async () => {
+  void submitForm(dialogs.unit, form, async () => {
     if (id) {
       const { unit } = await api(`/api/units/${id}`, {
         method: 'PATCH',
-        body: { inventoryCode: data.get('inventoryCode') },
+        body: { inventoryCode: textField(data, 'inventoryCode') },
       });
       return `Unidad ${unit.id} actualizada. Código ${unit.inventoryCode}.`;
     }
     const { unit } = await api('/api/units', {
       method: 'POST',
-      body: { equipmentId: Number(data.get('equipmentId')), inventoryCode: data.get('inventoryCode') },
+      body: { equipmentId: Number(textField(data, 'equipmentId')), inventoryCode: textField(data, 'inventoryCode') },
     });
     return `Unidad ${unit.id} registrada con el código ${unit.inventoryCode}.`;
   });

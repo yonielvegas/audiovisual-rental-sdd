@@ -14,7 +14,7 @@ const el = (selector) => document.querySelector(selector);
 
 const filters = el('#category-filters');
 const list = el('#equipment-list');
-const status = el('#catalog-status');
+const feedback = el('#catalog-status');
 const template = el('#equipment-card');
 const detail = el('#detail-dialog');
 const allChip = filters.querySelector('button[data-category=""]');
@@ -34,9 +34,9 @@ const formatRate = (rate) => (rate
 const unitsLabel = (total) => (total === 1 ? '1 unidad en servicio' : `${total} unidades en servicio`);
 
 function showStatus(kind, message) {
-  status.dataset.state = kind;
-  status.textContent = message;
-  status.hidden = !message;
+  feedback.dataset.state = kind;
+  feedback.textContent = message;
+  feedback.hidden = !message;
 }
 
 async function readJson(path) {

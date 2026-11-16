@@ -6,7 +6,9 @@ import { roles } from './roles.js';
 export { roles };
 
 export const usernamePattern = /^[a-z0-9][a-z0-9._-]{2,31}$/;
-const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// Las etiquetas del dominio no contienen puntos, de modo que el motor no
+// puede repartir el texto de varias formas y no hay retroceso cuadrático.
+const emailPattern = /^[^@\s]+@[^@.\s]+(?:\.[^@.\s]+)+$/;
 
 export const passwordLimits = { minimum: 8, maximum: 200 };
 

@@ -65,5 +65,5 @@ logoutButton?.addEventListener('click', async () => {
   }
 });
 
-checkStatus();
-loadSession();
+// Las dos consultas iniciales no dependen entre sí.
+await Promise.all([checkStatus(), loadSession()]);

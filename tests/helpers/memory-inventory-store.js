@@ -175,7 +175,7 @@ export function createMemoryInventoryStore(seed = {}) {
 
     async lockActiveUnit(_client, id) {
       const row = units.get(id);
-      return row && row.active ? unitView(row) : null;
+      return row?.active ? unitView(row) : null;
     },
   };
 }

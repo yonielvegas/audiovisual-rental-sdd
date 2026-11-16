@@ -40,7 +40,8 @@ jobs:
       - name: Comprobar las migraciones y su segunda ejecución
         run: |
           psql_query() {
-            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
+            consulta="$1"
+            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$consulta"
           }
           applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql', '003-accounts.sql', '004-catalog-details.sql', '005-catalog-seed.sql')"
           test "$(psql_query "$applied")" = 5
@@ -50,7 +51,8 @@ jobs:
       - name: Comprobar la unicidad del inventario en PostgreSQL
         run: |
           psql_query() {
-            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
+            consulta="$1"
+            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$consulta"
           }
           test "$(psql_query "SELECT indisunique FROM pg_index WHERE indexrelid = 'audiovisual.units_inventory_code_unique'::regclass")" = t
           duplicated="SELECT COUNT(*) FROM (SELECT inventory_code FROM audiovisual.units GROUP BY inventory_code HAVING COUNT(*) > 1) AS repetidos"
@@ -59,7 +61,8 @@ jobs:
       - name: Comprobar el catálogo sembrado por la migración
         run: |
           psql_query() {
-            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
+            consulta="$1"
+            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$consulta"
           }
           # Al menos diez equipos publicados con marca, modelo, descripción,
           # tarifa, imagen del mismo origen y una unidad apta para alquiler.
@@ -72,7 +75,8 @@ jobs:
       - name: Comprobar la cuenta administrativa y el almacenamiento de contraseñas
         run: |
           psql_query() {
-            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
+            consulta="$1"
+            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$consulta"
           }
           set -a
           . ./.env
