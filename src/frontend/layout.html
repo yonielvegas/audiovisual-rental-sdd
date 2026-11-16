@@ -20,7 +20,13 @@
           <a href="/"{{home-current}}>Inicio</a>
           <a href="/#nosotros">Nosotros</a>
           <a href="/catalogo"{{catalog-current}}>Catálogo</a>
+          <a id="nav-inventory" href="/inventario"{{inventory-current}} hidden>Inventario</a>
         </nav>
+        <div class="site-session" id="site-session" data-state="unknown">
+          <a class="button button-secondary button-compact" id="session-access" href="/acceso"{{access-current}} hidden>Acceder</a>
+          <span class="session-user" id="session-user" hidden></span>
+          <button class="button button-secondary button-compact" id="session-logout" type="button" hidden>Cerrar sesión</button>
+        </div>
       </div>
     </header>
     <main id="contenido" tabindex="-1">

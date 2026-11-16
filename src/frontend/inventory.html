@@ -1,0 +1,294 @@
+<svg class="icon-sprite" aria-hidden="true" focusable="false">
+  <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M14.5 6.5 17.5 9.5"/></symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 7V5h4v2M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="icon-power" viewBox="0 0 24 24"><path d="M12 4v8"/><path d="M7.5 7a7 7 0 1 0 9 0"/></symbol>
+  <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+  <symbol id="icon-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8-9-9Z"/><circle cx="7.5" cy="7.5" r="1.4"/></symbol>
+  <symbol id="icon-camera" viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="m16 11 5-3v8l-5-3"/></symbol>
+  <symbol id="icon-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></symbol>
+  <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 13 4 4 10-10"/></symbol>
+  <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4M12 17v.5"/></symbol>
+  <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+</svg>
+
+<section class="inventory shell" aria-labelledby="inventory-title">
+  <header class="panel glass inventory-header">
+    <div>
+      <h1 id="inventory-title">Administración del inventario</h1>
+      <p>
+        Categorías, equipos y las unidades físicas que las reservas comprometen de una en una.
+        Cada unidad conserva su identificador y su código único.
+      </p>
+    </div>
+    <dl class="summary" id="summary">
+      <div><dt>Categorías</dt><dd data-summary="categories">—</dd></div>
+      <div><dt>Equipos</dt><dd data-summary="equipment">—</dd></div>
+      <div><dt>Unidades activas</dt><dd data-summary="active">—</dd></div>
+      <div><dt>Retiradas</dt><dd data-summary="inactive">—</dd></div>
+    </dl>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Secciones del inventario">
+    <button class="tab" role="tab" type="button" id="tab-categories" aria-controls="panel-categories" aria-selected="true">
+      <svg class="icon" aria-hidden="true"><use href="#icon-tag"></use></svg>
+      Categorías
+      <span class="tab-count" data-summary="categories">0</span>
+    </button>
+    <button class="tab" role="tab" type="button" id="tab-equipment" aria-controls="panel-equipment" aria-selected="false" tabindex="-1">
+      <svg class="icon" aria-hidden="true"><use href="#icon-camera"></use></svg>
+      Equipos
+      <span class="tab-count" data-summary="equipment">0</span>
+    </button>
+    <button class="tab" role="tab" type="button" id="tab-units" aria-controls="panel-units" aria-selected="false" tabindex="-1">
+      <svg class="icon" aria-hidden="true"><use href="#icon-box"></use></svg>
+      Unidades físicas
+      <span class="tab-count" data-summary="units">0</span>
+    </button>
+  </div>
+
+  <output id="inventory-status" class="feedback">Cargando el inventario.</output>
+
+  <!-- Categorías -->
+  <section class="panel glass tabpanel" role="tabpanel" id="panel-categories" aria-labelledby="tab-categories" tabindex="0">
+    <div class="toolbar">
+      <p class="field search-field">
+        <label for="search-categories">Buscar categorías</label>
+        <span class="search-input">
+          <svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+          <input id="search-categories" type="search" placeholder="Nombre de la categoría" autocomplete="off">
+        </span>
+      </p>
+      <button class="button button-primary" type="button" data-create="category">
+        <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+        Nueva categoría
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">Categorías del catálogo</caption>
+        <thead>
+          <tr><th scope="col">Nombre</th><th scope="col">Identificador</th><th scope="col">Equipos</th><th scope="col">Acciones</th></tr>
+        </thead>
+        <tbody id="rows-categories"></tbody>
+      </table>
+    </div>
+    <p class="table-empty" id="empty-categories" hidden></p>
+  </section>
+
+  <!-- Equipos -->
+  <section class="panel glass tabpanel" role="tabpanel" id="panel-equipment" aria-labelledby="tab-equipment" tabindex="0" hidden>
+    <div class="toolbar">
+      <p class="field search-field">
+        <label for="search-equipment">Buscar equipos</label>
+        <span class="search-input">
+          <svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+          <input id="search-equipment" type="search" placeholder="Nombre o descripción" autocomplete="off">
+        </span>
+      </p>
+      <p class="field filter-field">
+        <label for="filter-equipment-category">Categoría</label>
+        <select id="filter-equipment-category"><option value="">Todas</option></select>
+      </p>
+      <p class="field filter-field">
+        <label for="filter-equipment-published">Publicación</label>
+        <select id="filter-equipment-published">
+          <option value="">Todos</option>
+          <option value="published">Publicados</option>
+          <option value="unpublished">Sin publicar</option>
+        </select>
+      </p>
+      <button class="button button-primary" type="button" data-create="equipment">
+        <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+        Nuevo equipo
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">Equipos del catálogo</caption>
+        <thead>
+          <tr><th scope="col">Nombre</th><th scope="col">Categoría</th><th scope="col">Marca y modelo</th><th scope="col">Tarifa/día</th><th scope="col">Unidades activas</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr>
+        </thead>
+        <tbody id="rows-equipment"></tbody>
+      </table>
+    </div>
+    <p class="table-empty" id="empty-equipment" hidden></p>
+  </section>
+
+  <!-- Unidades físicas -->
+  <section class="panel glass tabpanel" role="tabpanel" id="panel-units" aria-labelledby="tab-units" tabindex="0" hidden>
+    <div class="toolbar">
+      <p class="field search-field">
+        <label for="search-units">Buscar unidades</label>
+        <span class="search-input">
+          <svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+          <input id="search-units" type="search" placeholder="Código de inventario o equipo" autocomplete="off">
+        </span>
+      </p>
+      <p class="field filter-field">
+        <label for="filter-units-equipment">Equipo</label>
+        <select id="filter-units-equipment"><option value="">Todos</option></select>
+      </p>
+      <p class="field filter-field">
+        <label for="filter-units-state">Estado</label>
+        <select id="filter-units-state">
+          <option value="">Todos</option>
+          <option value="active">En servicio</option>
+          <option value="inactive">Retiradas</option>
+        </select>
+      </p>
+      <button class="button button-primary" type="button" data-create="unit">
+        <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+        Nueva unidad
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">Unidades físicas del inventario</caption>
+        <thead>
+          <tr><th scope="col">Código</th><th scope="col">Identificador</th><th scope="col">Equipo</th><th scope="col">Categoría</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr>
+        </thead>
+        <tbody id="rows-units"></tbody>
+      </table>
+    </div>
+    <p class="table-empty" id="empty-units" hidden></p>
+    <p class="panel-hint">
+      Una unidad no se borra: se retira del servicio y conserva su identificador, porque las reservas lo referencian.
+    </p>
+  </section>
+</section>
+
+<!-- Formularios en ventanas modales -->
+<dialog class="modal" id="category-dialog" aria-labelledby="category-dialog-title">
+  <form id="category-form" method="dialog" autocomplete="off">
+    <header class="modal-head">
+      <h2 id="category-dialog-title">Nueva categoría</h2>
+      <button class="icon-button" type="button" data-close aria-label="Cerrar">
+        <svg class="icon" aria-hidden="true"><use href="#icon-close"></use></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <p class="field">
+        <label for="category-name">Nombre</label>
+        <input id="category-name" name="name" type="text" maxlength="80" required>
+      </p>
+      <p class="panel-hint">Hasta 80 caracteres. No puede repetir el nombre de otra categoría.</p>
+      <p class="feedback" data-dialog-error role="alert" hidden></p>
+    </div>
+    <footer class="modal-foot">
+      <button class="button button-secondary" type="button" data-close>Cancelar</button>
+      <button class="button button-primary" type="submit" data-submit>Guardar</button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog class="modal" id="equipment-dialog" aria-labelledby="equipment-dialog-title">
+  <form id="equipment-form" method="dialog" autocomplete="off">
+    <header class="modal-head">
+      <h2 id="equipment-dialog-title">Nuevo equipo</h2>
+      <button class="icon-button" type="button" data-close aria-label="Cerrar">
+        <svg class="icon" aria-hidden="true"><use href="#icon-close"></use></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <p class="field">
+        <label for="equipment-category">Categoría</label>
+        <select id="equipment-category" name="categoryId" required></select>
+      </p>
+      <p class="field">
+        <label for="equipment-name">Nombre</label>
+        <input id="equipment-name" name="name" type="text" maxlength="120" required>
+      </p>
+      <div class="field-pair">
+        <p class="field">
+          <label for="equipment-brand">Marca <span class="field-note">(opcional)</span></label>
+          <input id="equipment-brand" name="brand" type="text" maxlength="60" placeholder="Sony">
+        </p>
+        <p class="field">
+          <label for="equipment-model">Modelo <span class="field-note">(opcional)</span></label>
+          <input id="equipment-model" name="model" type="text" maxlength="60" placeholder="FX3">
+        </p>
+      </div>
+      <div class="field-pair">
+        <p class="field">
+          <label for="equipment-rate">Tarifa por día <span class="field-note">(USD, opcional)</span></label>
+          <input id="equipment-rate" name="dailyRate" type="number" min="0" max="1000000" step="0.01" placeholder="45.00">
+        </p>
+        <p class="field">
+          <label for="equipment-image">Imagen <span class="field-note">(opcional)</span></label>
+          <input id="equipment-image" name="imageUrl" type="text" maxlength="500" placeholder="/imagenes/fx3.webp">
+        </p>
+      </div>
+      <p class="field">
+        <label for="equipment-description">Descripción <span class="field-note">(opcional)</span></label>
+        <textarea id="equipment-description" name="description" maxlength="600" rows="3"></textarea>
+      </p>
+      <p class="field field-check">
+        <input id="equipment-published" name="published" type="checkbox" checked>
+        <label for="equipment-published">Publicado en el catálogo público</label>
+      </p>
+      <p class="panel-hint">
+        El nombre no puede repetirse dentro de la misma categoría. La imagen admite una ruta del mismo origen
+        que empiece por «/» o una dirección https. Dejar la tarifa vacía la marca como pendiente de fijar.
+      </p>
+      <p class="feedback" data-dialog-error role="alert" hidden></p>
+    </div>
+    <footer class="modal-foot">
+      <button class="button button-secondary" type="button" data-close>Cancelar</button>
+      <button class="button button-primary" type="submit" data-submit>Guardar</button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog class="modal" id="unit-dialog" aria-labelledby="unit-dialog-title">
+  <form id="unit-form" method="dialog" autocomplete="off">
+    <header class="modal-head">
+      <h2 id="unit-dialog-title">Nueva unidad física</h2>
+      <button class="icon-button" type="button" data-close aria-label="Cerrar">
+        <svg class="icon" aria-hidden="true"><use href="#icon-close"></use></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <p class="field">
+        <label for="unit-equipment">Equipo</label>
+        <select id="unit-equipment" name="equipmentId" required></select>
+      </p>
+      <p class="field">
+        <label for="unit-code">Código de inventario</label>
+        <input id="unit-code" name="inventoryCode" type="text" maxlength="24"
+               pattern="[A-Za-z0-9][A-Za-z0-9\-]{2,23}" placeholder="CAM-001" required>
+      </p>
+      <p class="panel-hint">
+        De 3 a 24 caracteres entre letras, dígitos y guiones. Se guarda en mayúsculas y debe ser único en todo el inventario.
+      </p>
+      <p class="feedback" data-dialog-error role="alert" hidden></p>
+    </div>
+    <footer class="modal-foot">
+      <button class="button button-secondary" type="button" data-close>Cancelar</button>
+      <button class="button button-primary" type="submit" data-submit>Guardar</button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog class="modal modal-confirm" id="confirm-dialog" aria-labelledby="confirm-title">
+  <form method="dialog">
+    <header class="modal-head">
+      <h2 id="confirm-title">Confirmar</h2>
+      <button class="icon-button" type="button" data-close aria-label="Cerrar">
+        <svg class="icon" aria-hidden="true"><use href="#icon-close"></use></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <p id="confirm-message"></p>
+      <p class="panel-hint" id="confirm-detail"></p>
+    </div>
+    <footer class="modal-foot">
+      <button class="button button-secondary" type="button" data-close>Cancelar</button>
+      <button class="button button-danger" type="button" id="confirm-accept">Confirmar</button>
+    </footer>
+  </form>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script type="module" src="/inventory.js"></script>

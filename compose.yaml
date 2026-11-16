@@ -5,6 +5,15 @@ x-postgres-env: &postgres-env
   PGUSER: ${PGUSER:-audiovisual}
   PGPASSWORD: ${PGPASSWORD:?Copy .env.example to .env and set PGPASSWORD}
 
+x-admin-env: &admin-env
+  <<: *postgres-env
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Copy .env.example to .env and set ADMIN_PASSWORD}
+
+x-app-env: &app-env
+  <<: *postgres-env
+  SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+
 x-app-image: &app-image
   image: audiovisual-rental-sdd-local
   build: .
@@ -26,14 +35,16 @@ services:
       retries: 15
   migrate:
     <<: *app-image
-    command: ["node", "src/backend/migrate.js"]
-    environment: *postgres-env
+    # Aplica las migraciones y deja lista la cuenta administrativa. La
+    # contraseña llega por entorno y nunca se escribe en el repositorio.
+    command: ["sh", "-c", "node src/backend/migrate.js && node src/backend/bootstrap-admin.js"]
+    environment: *admin-env
     depends_on:
       db:
         condition: service_healthy
   app:
     <<: *app-image
-    environment: *postgres-env
+    environment: *app-env
     depends_on:
       migrate:
         condition: service_completed_successfully

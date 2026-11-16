@@ -20,13 +20,15 @@ El navegador solicita la página y consulta `GET /api/health` en el mismo origen
 2. `migrate` se ejecuta cuando `db` está listo. Aplica migraciones pendientes en una transacción y registra sus versiones. Un bloqueo transaccional serializa ejecuciones concurrentes.
 3. `app` se inicia cuando `migrate` termina correctamente. Consulta PostgreSQL para informar el estado de disponibilidad. Responde HTTP 503 si la conexión o la consulta falla.
 
+El paso `migrate` aplica las migraciones y a continuación ejecuta `bootstrap-admin.js`, que deja lista la cuenta administrativa con la contraseña que llega por entorno. El proceso es idempotente: solo vuelve a calcular el hash cuando la contraseña configurada dejó de coincidir, y en ese caso cierra las sesiones anteriores de esa cuenta.
+
 Las credenciales y el puerto se configuran por variables de entorno. `.env.example` contiene valores de desarrollo ficticios. `.env` es local. La API devuelve un estado estable y el servidor puede registrar errores sin exponer credenciales al cliente.
 
 ## Evolución funcional propuesta
 
-- Catálogo e inventario usarán rutas y consultas separadas de la infraestructura común. Cada unidad tendrá un código único.
+- Catálogo e inventario ya usan rutas y consultas separadas de la infraestructura común: una tabla de rutas declarativa (`src/backend/router.js`), la validación y las operaciones del dominio (`src/backend/inventory.js`) y el acceso a PostgreSQL (`src/backend/inventory-store.js`). Cada unidad tiene un identificador estable y un código único.
 - La disponibilidad representará una lectura en un instante; la confirmación de la reserva se decidirá al escribir en la base de datos.
 - Una restricción de exclusión GiST sobre la unidad y un rango `tstzrange` evitará solapamientos activos incluso con pedidos concurrentes. Se propone `btree_gist` para combinar el identificador de unidad con el rango.
-- El diseño de sesión y control de acceso se revisará con el equipo antes del trabajo protegido de catálogo y reservas. El rol administrativo se verifica en el backend.
+- El control de acceso se resuelve en un solo punto: cada ruta declara el rol que exige y el backend lo verifica antes de leer el cuerpo de la petición. `src/backend/access.js` traduce la cookie de sesión en un actor `{ id, username, role }`; las cuentas y las sesiones viven en `src/backend/accounts.js` y `src/backend/account-store.js`, y las contraseñas se procesan solo en `src/backend/passwords.js`.
 
 Referencias técnicas: [orden de inicio de Docker Compose](https://docs.docker.com/compose/how-tos/startup-order/), [pool de node-postgres](https://node-postgres.com/apis/pool) y [restricciones de rangos de PostgreSQL](https://www.postgresql.org/docs/current/rangetypes.html#RANGETYPES-CONSTRAINT).

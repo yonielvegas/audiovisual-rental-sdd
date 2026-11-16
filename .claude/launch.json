@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "start"
+      ],
+      "port": 8080
+    },
+    {
+      "name": "verificacion-memoria",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/yinip/AppData/Local/Temp/claude/8faaafe4644902f3/f415572e-39cf-4c44-8da9-4e94fed5a3d2/scratchpad/demo-server.mjs"
+      ],
+      "port": 8099
+    }
+  ]
+}
