@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { currency } from '../src/backend/inventory.js';
 
 const baseUrl = new URL(process.env.SMOKE_BASE_URL ?? 'http://localhost:8080');
 const databaseDown = process.argv.includes('--database-down');
@@ -99,6 +100,57 @@ const expectedBody = databaseDown
 assert.equal(health.status, expectedStatus, `GET /api/health debe devolver HTTP ${expectedStatus}`);
 assert.match(health.headers.get('content-type') ?? '', /^application\/json\b/i);
 assert.deepEqual(await health.json(), expectedBody, 'Contrato de salud inesperado');
+
+// AC-02. La semilla de la migración deja un catálogo consultable sin sesión y
+// con los datos completos: marca, modelo, descripción, tarifa, ilustración del
+// mismo origen y al menos una unidad física apta para alquiler.
+let seedSummary = 'Catálogo sembrado omitido: la base de datos no responde.';
+if (!databaseDown) {
+  const seeded = await guest.json('/api/equipment');
+  assert.equal(seeded.status, 200, 'El catálogo público debe responder sin sesión');
+
+  const complete = seeded.payload.equipment.filter((item) => item.brand && item.model && item.description
+    && item.dailyRate && item.imageUrl && item.activeUnits > 0);
+  assert.ok(
+    complete.length >= 10,
+    `El catálogo debe ofrecer al menos diez equipos con la información completa (hay ${complete.length})`,
+  );
+
+  for (const item of complete) {
+    assert.equal(item.published, true, `El equipo ${item.id} se consulta sin estar publicado`);
+    assert.equal(item.dailyRate.currency, currency, `Moneda inesperada en el equipo ${item.id}`);
+    assert.ok(
+      Number.isInteger(item.dailyRate.cents) && item.dailyRate.cents > 0,
+      `La tarifa del equipo ${item.id} debe ser un número entero de céntimos`,
+    );
+    assert.ok(item.category?.name, `El equipo ${item.id} debe pertenecer a una categoría con nombre`);
+  }
+
+  // Las ilustraciones viajan por el mismo origen, así que el catálogo no
+  // depende de ningún servicio externo para dibujar sus tarjetas.
+  const illustrations = [...new Set(complete.map(({ imageUrl }) => imageUrl))];
+  for (const path of illustrations) {
+    assert.ok(path.startsWith('/'), `La imagen ${path} debe servirse desde el mismo origen`);
+    const image = await request(path);
+    assert.equal(image.status, 200, `La imagen ${path} debe devolver HTTP 200`);
+    assert.match(image.headers.get('content-type') ?? '', /^image\/svg\+xml\b/i, `Tipo incorrecto en ${path}`);
+    assert.ok((await image.text()).includes('<svg'), `La imagen ${path} debe tener contenido`);
+  }
+
+  const seededCategories = await guest.json('/api/categories');
+  const grouping = seededCategories.payload.categories.filter(({ equipmentCount }) => equipmentCount > 0);
+  assert.ok(grouping.length >= 3, 'El catálogo debe mostrar varias categorías con equipos');
+
+  // Cada unidad activa del catálogo lleva su propio código, único en todo el
+  // inventario (RN-01). El recuento público debe coincidir con esas unidades.
+  const sample = complete[0];
+  const detail = await guest.json(`/api/equipment/${sample.id}`);
+  assert.equal(detail.status, 200, 'La ficha de un equipo publicado debe consultarse sin sesión');
+  assert.equal(detail.payload.equipment.activeUnits, sample.activeUnits);
+
+  seedSummary = `Catálogo sembrado: ${complete.length} equipos completos en ${grouping.length} categorías`
+    + ` y ${illustrations.length} ilustraciones del mismo origen.`;
+}
 
 let accountsSummary = 'Cuentas e inventario omitidos.';
 const adminUsername = process.env.ADMIN_USERNAME ?? 'admin';
@@ -211,4 +263,5 @@ if (!databaseDown && adminPassword) {
 }
 
 console.log(`Inicio, catálogo, acceso y ${assets.length + 1} recursos estáticos correctos. Salud HTTP ${health.status}.`);
+console.log(seedSummary);
 console.log(accountsSummary);

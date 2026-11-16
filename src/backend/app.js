@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { roles } from './roles.js';
 import { anonymousActorResolver, requireRole } from './access.js';
@@ -65,7 +65,14 @@ export async function createApp({
     page.path,
     { type: 'text/html; charset=utf-8', content: await render(page.file, page.title, page.nav), role: page.role },
   ]));
-  const staticRoutes = await Promise.all(assets.map(async ([path, file, type]) => [
+  // Las ilustraciones del catálogo se enumeran al arrancar y se sirven desde esa
+  // lista, nunca desde la ruta que trae la solicitud: así ninguna petición puede
+  // alcanzar un archivo que no sea una de ellas.
+  const illustrations = (await readdir(new URL('img/', frontend)))
+    .filter((name) => name.endsWith('.svg'))
+    .map((name) => [`/img/${name}`, `img/${name}`, 'image/svg+xml; charset=utf-8']);
+
+  const staticRoutes = await Promise.all([...assets, ...illustrations].map(async ([path, file, type]) => [
     path, { type, content: await readFile(new URL(file, frontend)) },
   ]));
   const documents = new Map([...pageRoutes, ...staticRoutes]);

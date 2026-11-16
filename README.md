@@ -51,11 +51,11 @@ curl -c sesion.txt -X POST http://localhost:8080/api/sessions   -H "Content-Type
 curl -b sesion.txt -X POST http://localhost:8080/api/units   -H "Content-Type: application/json"   -d '{"equipmentId":1,"inventoryCode":"CAM-001"}'
 ```
 
-Cada unidad física tiene un identificador estable y un código único en todo el inventario. Las rutas, las respuestas y las garantías que la entrega de reservas puede dar por ciertas están en [el contrato de inventario](docs/inventory-contract.md) y en [los contratos de API](specs/api.md).
+La migración `005-catalog-seed.sql` deja el catálogo cargado con catorce equipos audiovisuales reales, sus tarifas, sus ilustraciones y 34 unidades físicas etiquetadas, de modo que `/catalogo` y `/inventario` tienen datos desde el primer arranque. Cada unidad física tiene un identificador estable y un código único en todo el inventario. Las rutas, las respuestas y las garantías que la entrega de reservas puede dar por ciertas están en [el contrato de inventario](docs/inventory-contract.md) y en [los contratos de API](specs/api.md).
 
 ## Funcionamiento de la composición
 
-Compose arranca PostgreSQL, aplica las migraciones, deja lista la cuenta administrativa y luego inicia el servidor que sirve el frontend y la API. El estado esperado es `db` y `app` saludables y `migrate` finalizado con código 0. Para ver los registros usa `docker compose logs db migrate app`. Para repetir las migraciones en la misma base usa `docker compose run --rm migrate`. Para detener y conservar el volumen usa `docker compose down`.
+Compose arranca PostgreSQL, aplica las migraciones, carga el catálogo de demostración, deja lista la cuenta administrativa y luego inicia el servidor que sirve el frontend y la API. El estado esperado es `db` y `app` saludables y `migrate` finalizado con código 0. Para ver los registros usa `docker compose logs db migrate app`. Para repetir las migraciones en la misma base usa `docker compose run --rm migrate`. Para detener y conservar el volumen usa `docker compose down`.
 
 ## Pruebas
 

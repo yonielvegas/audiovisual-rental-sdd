@@ -42,10 +42,10 @@ jobs:
           psql_query() {
             docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
           }
-          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql', '003-accounts.sql', '004-catalog-details.sql')"
-          test "$(psql_query "$applied")" = 4
+          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql', '003-accounts.sql', '004-catalog-details.sql', '005-catalog-seed.sql')"
+          test "$(psql_query "$applied")" = 5
           docker compose run --rm migrate
-          test "$(psql_query "$applied")" = 4
+          test "$(psql_query "$applied")" = 5
           test "$(psql_query "SELECT to_regnamespace('audiovisual') IS NOT NULL")" = t
       - name: Comprobar la unicidad del inventario en PostgreSQL
         run: |
@@ -56,6 +56,19 @@ jobs:
           duplicated="SELECT COUNT(*) FROM (SELECT inventory_code FROM audiovisual.units GROUP BY inventory_code HAVING COUNT(*) > 1) AS repetidos"
           test "$(psql_query "$duplicated")" = 0
           test "$(psql_query "SELECT COUNT(*) >= 2 FROM audiovisual.units")" = t
+      - name: Comprobar el catálogo sembrado por la migración
+        run: |
+          psql_query() {
+            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
+          }
+          # Al menos diez equipos publicados con marca, modelo, descripción,
+          # tarifa, imagen del mismo origen y una unidad apta para alquiler.
+          completos="SELECT COUNT(*) FROM audiovisual.equipment e WHERE e.published AND e.brand <> '' AND e.model <> '' AND e.description <> '' AND e.daily_rate_cents IS NOT NULL AND e.image_url LIKE '/img/%' AND EXISTS (SELECT 1 FROM audiovisual.units u WHERE u.equipment_id = e.id AND u.active)"
+          test "$(psql_query "$completos")" -ge 10
+          # La semilla se puede volver a aplicar sin duplicar registros.
+          docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -f - < db/migrations/005-catalog-seed.sql
+          test "$(psql_query "$completos")" -ge 10
+          test "$(psql_query "SELECT COUNT(*) = COUNT(DISTINCT inventory_code) FROM audiovisual.units")" = t
       - name: Comprobar la cuenta administrativa y el almacenamiento de contraseñas
         run: |
           psql_query() {

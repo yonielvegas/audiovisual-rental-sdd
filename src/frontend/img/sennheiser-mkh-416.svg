@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300" width="480" height="300" role="img" aria-label="Ilustración de Sennheiser MKH 416">
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1526"/>
+      <stop offset="1" stop-color="#1c2946"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="300" fill="url(#fondo)"/>
+  <circle cx="404" cy="44" r="124" fill="#35f5c2" opacity="0.08"/>
+  <circle cx="56" cy="286" r="118" fill="#7a49bd" opacity="0.16"/>
+  <g transform="translate(140 48)" fill="none" stroke="#a9ead9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="12" y="58" width="118" height="26" rx="13"/>
+    <path d="M36 58v26M54 58v26M72 58v26M90 58v26"/>
+    <rect x="130" y="62" width="32" height="18" rx="5"/>
+    <path d="M162 71h24"/>
+  </g>
+  <text x="34" y="250" font-family="Inter, Segoe UI, system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="2.6" fill="#35f5c2">SENNHEISER</text>
+  <text x="34" y="277" font-family="Inter, Segoe UI, system-ui, sans-serif" font-size="21" font-weight="700" fill="#f5f8fc">MKH 416</text>
+</svg>

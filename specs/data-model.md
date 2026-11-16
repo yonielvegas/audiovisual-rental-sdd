@@ -1,6 +1,6 @@
 # Modelo de datos
 
-Modelo lógico de catálogo, disponibilidad, cuentas y reservas. Las tablas de categorías, equipos y unidades físicas están implementadas en `db/migrations/002-inventory.sql`, y las de cuentas y sesiones en `db/migrations/003-accounts.sql`. La tabla de reservas se creará al abordar su funcionalidad.
+Modelo lógico de catálogo, disponibilidad, cuentas y reservas. Las tablas de categorías, equipos y unidades físicas están implementadas en `db/migrations/002-inventory.sql`, sus datos de presentación en `db/migrations/004-catalog-details.sql`, y las de cuentas y sesiones en `db/migrations/003-accounts.sql`. `db/migrations/005-catalog-seed.sql` carga el catálogo de demostración. La tabla de reservas se creará al abordar su funcionalidad.
 
 | Entidad | Campos propuestos | Restricciones |
 | --- | --- | --- |
@@ -26,6 +26,10 @@ Marca, modelo, tarifa e imagen son atributos del **equipo**, no de la unidad fí
 `daily_rate_cents` guarda céntimos enteros para no depender de la aritmética en coma flotante, y el MVP opera en una sola moneda, que el contrato acompaña al dato. `NULL` significa que la tarifa todavía no está fijada, que no es lo mismo que una tarifa de cero: el catálogo muestra «Tarifa por confirmar» en el primer caso y un importe en el segundo.
 
 `published` controla la visibilidad pública sin borrar nada. Un equipo despublicado desaparece del catálogo y de su consulta individual para quien no administra el inventario, y sigue visible y editable en la administración. No afecta a las unidades ni a su estado.
+
+## Catálogo de demostración
+
+`005-catalog-seed.sql` deja la base lista para usarse: seis categorías, catorce equipos audiovisuales reales con marca, modelo, descripción, tarifa por día e ilustración, y 34 unidades físicas etiquetadas, dos de ellas retiradas para que el recuento de unidades aptas no coincida con el total. Las ilustraciones son archivos del mismo origen en `src/frontend/img`, de modo que el catálogo no depende de ningún servicio externo; sustituir una por una fotografía solo exige cambiar `image_url` desde la administración. Cada inserción es idempotente contra sus índices únicos, así que la semilla puede volver a aplicarse sobre una base que ya tenga parte de esos registros sin duplicar nada.
 
 ## Credenciales y sesiones
 
