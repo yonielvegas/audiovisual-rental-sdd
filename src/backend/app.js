@@ -2,10 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 
 const frontend = new URL('../frontend/', import.meta.url);
+const pages = [
+  ['/', 'index.html', 'Reservas de equipos audiovisuales'],
+  ['/catalogo', 'catalog.html', 'Catálogo de equipos | Alquiler audiovisual'],
+];
 const assets = [
-  ['/', 'index.html', 'text/html; charset=utf-8'],
   ['/styles.css', 'styles.css', 'text/css; charset=utf-8'],
   ['/app.js', 'app.js', 'text/javascript; charset=utf-8'],
+  ['/hero.webp', 'hero.webp', 'image/webp'],
 ];
 
 function sendJson(response, status, body) {
@@ -18,10 +22,21 @@ function sendJson(response, status, body) {
 }
 
 export async function createApp({ checkDatabase }) {
-  const staticFiles = await Promise.all(assets.map(async ([path, file, type]) => [
+  const layout = await readFile(new URL('layout.html', frontend), 'utf8');
+  const pageRoutes = await Promise.all(pages.map(async ([path, file, title]) => {
+    const fields = {
+      title,
+      content: await readFile(new URL(file, frontend), 'utf8'),
+      'home-current': path === '/' ? ' aria-current="page"' : '',
+      'catalog-current': path === '/catalogo' ? ' aria-current="page"' : '',
+    };
+    const html = layout.replace(/\{\{([a-z-]+)\}\}/g, (_, field) => fields[field]);
+    return [path, { type: 'text/html; charset=utf-8', content: Buffer.from(html) }];
+  }));
+  const staticRoutes = await Promise.all(assets.map(async ([path, file, type]) => [
     path, { type, content: await readFile(new URL(file, frontend)) },
   ]));
-  const routes = new Map(staticFiles);
+  const routes = new Map([...pageRoutes, ...staticRoutes]);
 
   return createServer(async (request, response) => {
     const path = request.url.split('?', 1)[0];

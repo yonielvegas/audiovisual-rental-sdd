@@ -37,6 +37,20 @@ for (const { path, type } of assets) {
   assert.ok((await asset.text()).trim(), `El recurso ${path} debe tener contenido`);
 }
 
+
+assert.match(html, /href="\/catalogo"[^>]*>\s*Ver catálogo/);
+const hero = await request('/hero.webp');
+assert.equal(hero.status, 200);
+assert.equal(hero.headers.get('content-type'), 'image/webp');
+assert.ok((await hero.arrayBuffer()).byteLength > 0);
+
+const catalog = await request('/catalogo');
+assert.equal(catalog.status, 200);
+const catalogHtml = await catalog.text();
+assert.match(catalogHtml, /Eric Ruiz/);
+assert.match(catalogHtml, /issues\/4/);
+assert.match(catalogHtml, /Volver al inicio/);
+
 const health = await request('/api/health');
 const expectedStatus = databaseDown ? 503 : 200;
 const expectedBody = databaseDown
@@ -46,4 +60,4 @@ assert.equal(health.status, expectedStatus, `GET /api/health debe devolver HTTP 
 assert.match(health.headers.get('content-type') ?? '', /^application\/json\b/i);
 assert.deepEqual(await health.json(), expectedBody, 'Contrato de salud inesperado');
 
-console.log(`Inicio y ${assets.length} recursos estáticos correctos. Salud HTTP ${health.status}.`);
+console.log(`Inicio, catálogo y ${assets.length + 1} recursos estáticos correctos. Salud HTTP ${health.status}.`);

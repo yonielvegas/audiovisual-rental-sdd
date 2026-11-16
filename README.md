@@ -4,9 +4,11 @@ Proyecto #2 de Tópicos Especiales II del profesor Regis Rivera. La aplicación 
 
 ## Estado y alcance
 
-Esta entrega prepara el frontend, el backend, PostgreSQL, las migraciones y la comprobación de salud. El MVP acordado contempla registro e inicio de sesión, catálogo y categorías, inventario por unidad física, disponibilidad, reservas propias, cancelaciones, prevención de doble reserva y administración básica. La inclusión de pagos queda pendiente de aprobación.
+La base incluye el frontend con landing y catálogo provisional, el backend, PostgreSQL, las migraciones y la comprobación de salud. El MVP acordado contempla registro e inicio de sesión, catálogo y categorías, inventario por unidad física, disponibilidad, reservas propias, cancelaciones, prevención de doble reserva y administración básica. La inclusión de pagos queda pendiente de aprobación.
 
 Consulta [ODD](specs/outcomes.md), [requisitos](specs/requirements.md), [arquitectura](specs/architecture.md), [criterios de aceptación](specs/acceptance-criteria.md) y [plan de implementación](specs/implementation-plan.md).
+
+Para desarrollar nuevas pantallas y preparar la evidencia de las Issues, consulta la [guía de UI/UX](docs/ui-ux.md) y la [guía de trabajo y entrega académica](docs/project-workflow.md).
 
 ## Instalación y ejecución
 
