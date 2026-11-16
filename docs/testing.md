@@ -20,7 +20,7 @@ Los escenarios se vinculan con los [criterios de aceptación](../specs/acceptanc
 
 | Criterio | Resultado asociado | Prueba o escenario | Evidencia a adjuntar | Estado inicial |
 | --- | --- | --- | --- | --- |
-| AC-01 | O-01, O-04 | Registro y sesión con entradas válidas e inválidas. | Reporte de pruebas de validación e integración. | Pendiente |
+| AC-01 | O-01, O-04 | Registro y sesión con entradas válidas e inválidas. | `tests/auth.test.js` y la sección de cuentas de `tests/smoke.mjs` contra PostgreSQL. | Cubierto por pruebas automatizadas. Demostración con el equipo pendiente. |
 | AC-02, AC-03 | O-01, O-03 | Catálogo público, categorías, códigos únicos y permisos. | `tests/inventory.test.js` y la sección de inventario de `tests/smoke.mjs` contra PostgreSQL. Demostración con dos unidades en `/inventario`. | Cubierto por pruebas automatizadas. Demostración con el equipo pendiente. |
 | AC-04 | O-01, O-02 | Disponibilidad con intervalos solapados, contiguos e inválidos. | Reporte de pruebas de disponibilidad. | Pendiente |
 | AC-05, AC-06 | O-01, O-02 | Conflicto secuencial y concurrencia sobre una unidad en PostgreSQL. | Reporte de integración con respuestas HTTP y recuento final de reservas. | Pendiente |
@@ -31,11 +31,31 @@ Los escenarios se vinculan con los [criterios de aceptación](../specs/acceptanc
 
 Para cada ejecución registra fecha, ejecutor, commit, entorno, comando o pasos, resultado esperado, resultado observado y enlace a la evidencia. Para el cambio inesperado, conserva el criterio actualizado y la prueba correspondiente junto con el resultado anterior y posterior al cambio.
 
+## Pruebas de cuentas, sesión y roles de RF-01
+
+- **`npm test`.** `tests/auth.test.js` cubre el registro válido con normalización del usuario y del correo, siete formas de entrada inválida, los nombres y correos repetidos, el acceso con la contraseña correcta, la respuesta idéntica ante contraseña incorrecta y cuenta inexistente, los atributos de la cookie (`HttpOnly`, `SameSite=Lax`, `Path=/`, `Max-Age`, sin `Secure` en http), la redirección por rol, el cierre de sesión con revocación inmediata, el rechazo de cookies caducadas, manipuladas o desconocidas, el freno de intentos repetidos con su liberación, y la protección de la API y de la página del inventario frente a una cuenta sin permisos. Las pruebas comprueban además que ninguna respuesta devuelve la contraseña ni su hash.
+- **`npm run test:smoke` con la composición iniciada.** Inicia sesión con la cuenta administrativa que sembró la inicialización, comprueba que su rol es `ADMIN`, registra una cuenta pública y verifica que nace con rol `USER`, que no puede abrir `/inventario` ni escribir en la API, y que cerrar sesión revoca la credencial.
+- **CI.** Comprueba en PostgreSQL que la cuenta administrativa existe una sola vez con rol `ADMIN`, que su contraseña se guarda como hash `$argon2id$` y no coincide con el texto plano configurado, que ninguna cuenta registrada públicamente tiene rol distinto de `USER` y que el cierre de sesión dejó la tabla de sesiones sin filas del administrador.
+
 ## Pruebas de catálogo e inventario de la Issue 4
 
 - **`npm test`.** `tests/inventory.test.js` ejecuta la aplicación con un almacén en memoria que reproduce el contrato y las reglas de unicidad del almacén de PostgreSQL. Cubre las consultas públicas y su filtro por categoría (AC-02), el rechazo sin sesión y con una cuenta sin permisos sobre las siete rutas administrativas (AC-03, RT-02), la distinción de dos unidades del mismo equipo, el duplicado de código en el mismo equipo, en otro equipo y con otras mayúsculas (AC-03, RN-01), el formato del código, la estabilidad del identificador al corregirlo, la desactivación que conserva la unidad y retira su recuento del catálogo, y la superficie en proceso que consume Reservas.
 - **`npm run test:smoke` con la composición iniciada.** Registra una categoría, un equipo y dos unidades reales, comprueba que el código repetido devuelve HTTP 409 contra el índice único de PostgreSQL, que una petición sin credencial devuelve 401 y que una cuenta sin permisos devuelve 403, y vuelve a consultar el catálogo público para comprobar el filtro. Los datos llevan la marca de la ejecución para no interferir con ejecuciones anteriores sobre el mismo volumen.
 - **CI.** El flujo comprueba además que `002-inventory.sql` se aplica una sola vez, que el índice `units_inventory_code_unique` existe y es único, y que la tabla de unidades no contiene códigos repetidos después de la prueba de humo.
+
+## Evidencia de Docker Compose del 15 de noviembre de 2026
+
+Comprobaciones ejecutadas por Claude Code con Docker Compose en Windows, sobre un volumen de prueba vacío. Node.js 24.22.3 en el contenedor de aplicación y PostgreSQL 17.11 en el de base de datos.
+
+| Criterio | Ejecución observada | Resultado |
+| --- | --- | --- |
+| AC-08 | `docker compose config --quiet` y `docker compose up --build --wait`. Después `docker compose run --rm migrate` sobre el mismo volumen. | Configuración válida. `db` y `app` sanos y `migrate` finalizado con código 0. La primera ejecución aplicó `001-baseline.sql`, `002-inventory.sql` y `003-accounts.sql` y creó la cuenta administrativa. La segunda informó que no había migraciones pendientes y que la cuenta ya estaba al día, sin duplicar versiones ni cerrar sesiones abiertas. |
+| AC-09 | `npm run test:smoke` con la base disponible y la variante `--database-down` tras `docker compose stop db`. | Inicio, catálogo, acceso y tres recursos estáticos correctos. Salud HTTP 200 con PostgreSQL disponible y HTTP 503 al detenerlo. Con la base caída, `GET /inventario` sigue respondiendo 302 hacia el acceso y `POST /api/sessions` devuelve HTTP 500 con el cuerpo genérico `internal_error`; la traza queda en el registro del servidor. |
+| AC-01 | Sección de cuentas de la prueba de humo y consultas a la base. | La cuenta `admin` existe una sola vez con rol `ADMIN` y contraseña almacenada como `$argon2id$v=19$m=19456,t=2,p=1$…`. Ninguna fila contiene la contraseña en texto plano. Una contraseña incorrecta devolvió 401. El registro público creó una cuenta con rol `USER`. Cerrar sesión dejó la tabla de sesiones sin filas del administrador. Las sesiones guardan un SHA-256 de 64 caracteres hexadecimales y caducan a las 12 horas. |
+| AC-02, AC-03 | Sección de inventario de la prueba de humo y navegación en el navegador contra `http://localhost:8080`. | Dos unidades registradas con códigos distintos. El código repetido devolvió HTTP 409 contra el índice único `units_inventory_code_unique`, también escribiendo `nav-777` y después `NAV-777` desde el formulario. Sin sesión, HTTP 401; con una cuenta `USER`, HTTP 403 en la API y la página «Sin permisos» en `/inventario`. La consulta final no encontró códigos duplicados. |
+| AC-03, RT-02 | Inicio de sesión en el navegador con la cuenta administrativa y creación de una categoría. | El acceso llevó a `/inventario`, la cabecera mostró el usuario con rol `ADMIN` y `document.cookie` devolvió vacío, de modo que la cookie de sesión no es legible por scripts. La categoría se creó contra PostgreSQL y apareció en la lista con su identificador. |
+
+Pendientes: la ejecución remota en GitHub Actions y la comprobación desde un clon limpio por otra persona del equipo.
 
 ## Evidencia local del 15 de noviembre de 2026
 

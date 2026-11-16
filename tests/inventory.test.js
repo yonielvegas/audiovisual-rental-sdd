@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { catalogSeed, credentials, startApp } from './helpers/server.js';
+import { catalogSeed, startApp } from './helpers/server.js';
+
+// Atajo para las pruebas: el inventario siempre se administra con una sesión
+// de rol ADMIN, igual que en la aplicación.
+async function withAdmin(context, options) {
+  const client = await startApp(context, options);
+  return { client, admin: await client.as('admin') };
+}
 
 // AC-02 · RF-02. El catálogo público se consulta sin sesión y el filtro por
 // categoría devuelve solo los equipos de la categoría elegida.
@@ -67,15 +74,14 @@ test('publica un equipo del catálogo por su identificador', async (context) => 
   assert.equal(response.body.equipment.name, 'Cámara de cine compacta');
   assert.equal(response.body.equipment.activeUnits, 2);
 
-  const missing = await client.get('/api/equipment/404');
-  assert.equal(missing.status, 404);
+  assert.equal((await client.get('/api/equipment/404')).status, 404);
 });
 
-// AC-03 · RF-03, RT-02, RN-07. Solo una cuenta autorizada administra el
+// AC-03 · RF-03, RT-02, RN-07. Solo una cuenta con rol ADMIN administra el
 // inventario. La ausencia de sesión y el rol insuficiente se distinguen.
 test('rechaza la administración del inventario sin sesión y conserva el inventario', async (context) => {
-  const client = await startApp(context, { seed: catalogSeed });
-  const before = await client.admin.get('/api/units');
+  const { client, admin } = await withAdmin(context, { seed: catalogSeed });
+  const before = await admin.get('/api/units');
 
   for (const attempt of [
     client.post('/api/categories', { body: { name: 'Iluminación' } }),
@@ -89,60 +95,47 @@ test('rechaza la administración del inventario sin sesión y conserva el invent
     const response = await attempt;
     assert.equal(response.status, 401);
     assert.equal(response.body.error.code, 'unauthenticated');
-    assert.equal(response.headers.get('www-authenticate'), 'Bearer');
+    // El 401 no anuncia ningún esquema HTTP: la sesión se abre en /acceso.
+    assert.equal(response.headers.get('www-authenticate'), null);
   }
 
-  const after = await client.admin.get('/api/units');
+  const after = await admin.get('/api/units');
   assert.deepEqual(after.body, before.body);
   assert.deepEqual((await client.get('/api/categories')).body.categories.map(({ name }) => name), ['Audio', 'Cámaras']);
 });
 
 test('rechaza con 403 a una cuenta autenticada sin permisos de administración', async (context) => {
-  const client = await startApp(context, { seed: catalogSeed });
+  const { client, admin } = await withAdmin(context, { seed: catalogSeed });
+  const member = await client.as('member');
 
-  const created = await client.post('/api/units', {
-    token: credentials.member,
-    body: { equipmentId: 1, inventoryCode: 'CAM-900' },
-  });
+  const created = await member.post('/api/units', { body: { equipmentId: 1, inventoryCode: 'CAM-900' } });
   assert.equal(created.status, 403);
   assert.equal(created.body.error.code, 'forbidden');
 
-  const patched = await client.patch('/api/units/1', { token: credentials.member, body: { active: false } });
-  assert.equal(patched.status, 403);
+  assert.equal((await member.patch('/api/units/1', { body: { active: false } })).status, 403);
+  assert.equal((await member.get('/api/units')).status, 403);
 
-  const listed = await client.get('/api/units', { token: credentials.member });
-  assert.equal(listed.status, 403);
-
-  const units = await client.admin.get('/api/units');
+  const units = await admin.get('/api/units');
   assert.deepEqual(units.body.units.map(({ inventoryCode }) => inventoryCode), ['CAM-001', 'CAM-002', 'MIC-001']);
   assert.equal(units.body.units.find(({ id }) => id === 1).active, true);
 });
 
-test('rechaza una credencial desconocida o mal formada', async (context) => {
+test('no exige sesión para las consultas públicas del catálogo', async (context) => {
   const client = await startApp(context, { seed: catalogSeed });
 
-  const unknown = await client.get('/api/units', { token: 'credencial-que-no-existe-1' });
-  assert.equal(unknown.status, 401);
-
-  const malformed = await fetch(`${client.base}/api/units`, { headers: { Authorization: credentials.admin } });
-  assert.equal(malformed.status, 401);
-  assert.equal((await malformed.json()).error.code, 'unauthenticated');
-});
-
-test('no exige credencial para las consultas públicas del catálogo', async (context) => {
-  const client = await startApp(context, { seed: catalogSeed });
-
-  const response = await client.get('/api/categories', { token: 'credencial-que-no-existe-1' });
+  const response = await client.get('/api/categories', { cookie: 'sesion=inventada' });
   assert.equal(response.status, 200);
 });
 
 // AC-03 · RN-01. Dos unidades del mismo equipo se distinguen por su código y el
 // intento duplicado se rechaza sin alterar el inventario.
 test('registra dos unidades del mismo equipo y distingue sus identificadores', async (context) => {
-  const client = await startApp(context, { seed: { categories: [{ name: 'Cámaras' }], equipment: [{ categoryId: 1, name: 'Cámara de cine compacta' }] } });
+  const { admin } = await withAdmin(context, {
+    seed: { categories: [{ name: 'Cámaras' }], equipment: [{ categoryId: 1, name: 'Cámara de cine compacta' }] },
+  });
 
-  const first = await client.admin.post('/api/units', { equipmentId: 1, inventoryCode: 'CAM-010' });
-  const second = await client.admin.post('/api/units', { equipmentId: 1, inventoryCode: 'CAM-011' });
+  const first = await admin.post('/api/units', { body: { equipmentId: 1, inventoryCode: 'CAM-010' } });
+  const second = await admin.post('/api/units', { body: { equipmentId: 1, inventoryCode: 'CAM-011' } });
 
   assert.equal(first.status, 201);
   assert.equal(second.status, 201);
@@ -152,12 +145,12 @@ test('registra dos unidades del mismo equipo y distingue sus identificadores', a
   assert.equal(first.body.unit.equipment.id, second.body.unit.equipment.id);
   assert.equal(first.body.unit.active, true);
 
-  const units = await client.admin.get('/api/units?equipmentId=1');
+  const units = await admin.get('/api/units?equipmentId=1');
   assert.deepEqual(units.body.units.map(({ inventoryCode }) => inventoryCode), ['CAM-010', 'CAM-011']);
 });
 
 test('rechaza un código de inventario repetido y conserva la unidad existente', async (context) => {
-  const client = await startApp(context, {
+  const { admin } = await withAdmin(context, {
     seed: {
       categories: [{ name: 'Cámaras' }],
       equipment: [{ categoryId: 1, name: 'Cámara A' }, { categoryId: 1, name: 'Cámara B' }],
@@ -165,48 +158,46 @@ test('rechaza un código de inventario repetido y conserva la unidad existente',
     },
   });
 
-  const sameEquipment = await client.admin.post('/api/units', { equipmentId: 1, inventoryCode: 'CAM-010' });
+  const sameEquipment = await admin.post('/api/units', { body: { equipmentId: 1, inventoryCode: 'CAM-010' } });
   assert.equal(sameEquipment.status, 409);
   assert.equal(sameEquipment.body.error.code, 'inventory_code_taken');
 
   // El código identifica la unidad en todo el inventario, no solo dentro de un equipo.
-  const otherEquipment = await client.admin.post('/api/units', { equipmentId: 2, inventoryCode: 'CAM-010' });
-  assert.equal(otherEquipment.status, 409);
+  assert.equal((await admin.post('/api/units', { body: { equipmentId: 2, inventoryCode: 'CAM-010' } })).status, 409);
 
   // La comparación normaliza mayúsculas y espacios, igual que el almacenamiento.
-  const lowercase = await client.admin.post('/api/units', { equipmentId: 1, inventoryCode: ' cam-010 ' });
-  assert.equal(lowercase.status, 409);
+  assert.equal((await admin.post('/api/units', { body: { equipmentId: 1, inventoryCode: ' cam-010 ' } })).status, 409);
 
-  const units = await client.admin.get('/api/units');
+  const units = await admin.get('/api/units');
   assert.equal(units.body.units.length, 1);
   assert.equal(units.body.units[0].inventoryCode, 'CAM-010');
 });
 
 test('rechaza un código de inventario con formato inválido', async (context) => {
-  const client = await startApp(context, {
+  const { admin } = await withAdmin(context, {
     seed: { categories: [{ name: 'Cámaras' }], equipment: [{ categoryId: 1, name: 'Cámara A' }] },
   });
 
   for (const inventoryCode of ['', 'AB', 'CAM 010', 'CÁM-010', '-CAM-010', 'C'.repeat(25)]) {
-    const response = await client.admin.post('/api/units', { equipmentId: 1, inventoryCode });
+    const response = await admin.post('/api/units', { body: { equipmentId: 1, inventoryCode } });
     assert.equal(response.status, 400, `El código ${JSON.stringify(inventoryCode)} debe rechazarse`);
     assert.equal(response.body.error.code, 'invalid_inventory_code');
   }
-  assert.deepEqual((await client.admin.get('/api/units')).body.units, []);
+  assert.deepEqual((await admin.get('/api/units')).body.units, []);
 });
 
 test('normaliza el código de inventario al registrar la unidad', async (context) => {
-  const client = await startApp(context, {
+  const { admin } = await withAdmin(context, {
     seed: { categories: [{ name: 'Cámaras' }], equipment: [{ categoryId: 1, name: 'Cámara A' }] },
   });
 
-  const created = await client.admin.post('/api/units', { equipmentId: 1, inventoryCode: '  cam-012  ' });
+  const created = await admin.post('/api/units', { body: { equipmentId: 1, inventoryCode: '  cam-012  ' } });
   assert.equal(created.status, 201);
   assert.equal(created.body.unit.inventoryCode, 'CAM-012');
 });
 
 test('mantiene estable el identificador de la unidad al corregir su código', async (context) => {
-  const client = await startApp(context, {
+  const { admin } = await withAdmin(context, {
     seed: {
       categories: [{ name: 'Cámaras' }],
       equipment: [{ categoryId: 1, name: 'Cámara A' }],
@@ -214,19 +205,19 @@ test('mantiene estable el identificador de la unidad al corregir su código', as
     },
   });
 
-  const renamed = await client.admin.patch('/api/units/1', { inventoryCode: 'cam-099' });
+  const renamed = await admin.patch('/api/units/1', { body: { inventoryCode: 'cam-099' } });
   assert.equal(renamed.status, 200);
   assert.equal(renamed.body.unit.id, 1);
   assert.equal(renamed.body.unit.inventoryCode, 'CAM-099');
 
-  const taken = await client.admin.patch('/api/units/1', { inventoryCode: 'CAM-011' });
+  const taken = await admin.patch('/api/units/1', { body: { inventoryCode: 'CAM-011' } });
   assert.equal(taken.status, 409);
   assert.equal(taken.body.error.code, 'inventory_code_taken');
-  assert.equal((await client.admin.get('/api/units/1')).body.unit.inventoryCode, 'CAM-099');
+  assert.equal((await admin.get('/api/units/1')).body.unit.inventoryCode, 'CAM-099');
 });
 
 test('conserva la unidad desactivada en el inventario y la retira del catálogo', async (context) => {
-  const client = await startApp(context, {
+  const { client, admin } = await withAdmin(context, {
     seed: {
       categories: [{ name: 'Cámaras' }],
       equipment: [{ categoryId: 1, name: 'Cámara A' }],
@@ -234,104 +225,91 @@ test('conserva la unidad desactivada en el inventario y la retira del catálogo'
     },
   });
 
-  const deactivated = await client.admin.patch('/api/units/1', { active: false });
+  const deactivated = await admin.patch('/api/units/1', { body: { active: false } });
   assert.equal(deactivated.status, 200);
   assert.equal(deactivated.body.unit.active, false);
 
-  assert.equal((await client.admin.get('/api/units')).body.units.length, 2);
+  assert.equal((await admin.get('/api/units')).body.units.length, 2);
   assert.equal((await client.get('/api/equipment/1')).body.equipment.activeUnits, 1);
 
-  const reactivated = await client.admin.patch('/api/units/1', { active: true });
+  const reactivated = await admin.patch('/api/units/1', { body: { active: true } });
   assert.equal(reactivated.body.unit.active, true);
   assert.equal((await client.get('/api/equipment/1')).body.equipment.activeUnits, 2);
 });
 
 test('rechaza registrar una unidad de un equipo inexistente', async (context) => {
-  const client = await startApp(context, { seed: { categories: [{ name: 'Cámaras' }] } });
+  const { admin } = await withAdmin(context, { seed: { categories: [{ name: 'Cámaras' }] } });
 
-  const response = await client.admin.post('/api/units', { equipmentId: 77, inventoryCode: 'CAM-077' });
+  const response = await admin.post('/api/units', { body: { equipmentId: 77, inventoryCode: 'CAM-077' } });
   assert.equal(response.status, 404);
   assert.equal(response.body.error.code, 'not_found');
 });
 
 // RF-03. Administración de categorías y equipos con las autorizaciones previstas.
 test('crea y modifica categorías con una cuenta autorizada', async (context) => {
-  const client = await startApp(context);
+  const { admin } = await withAdmin(context);
 
-  const created = await client.admin.post('/api/categories', { name: '  Iluminación  ' });
+  const created = await admin.post('/api/categories', { body: { name: '  Iluminación  ' } });
   assert.equal(created.status, 201);
   assert.deepEqual(created.body.category, { id: 1, name: 'Iluminación', equipmentCount: 0 });
   assert.equal(created.headers.get('location'), '/api/categories/1');
 
-  const renamed = await client.admin.patch('/api/categories/1', { name: 'Iluminación de estudio' });
+  const renamed = await admin.patch('/api/categories/1', { body: { name: 'Iluminación de estudio' } });
   assert.equal(renamed.status, 200);
   assert.equal(renamed.body.category.name, 'Iluminación de estudio');
 
-  const duplicated = await client.admin.post('/api/categories', { name: 'iluminación de estudio' });
+  const duplicated = await admin.post('/api/categories', { body: { name: 'iluminación de estudio' } });
   assert.equal(duplicated.status, 409);
   assert.equal(duplicated.body.error.code, 'category_name_taken');
 
-  const missing = await client.admin.patch('/api/categories/42', { name: 'Otra' });
-  assert.equal(missing.status, 404);
+  assert.equal((await admin.patch('/api/categories/42', { body: { name: 'Otra' } })).status, 404);
 });
 
 test('rechaza una categoría sin nombre o con un cambio vacío', async (context) => {
-  const client = await startApp(context, { seed: { categories: [{ name: 'Cámaras' }] } });
+  const { admin } = await withAdmin(context, { seed: { categories: [{ name: 'Cámaras' }] } });
 
-  assert.equal((await client.admin.post('/api/categories', { name: '   ' })).status, 400);
-  assert.equal((await client.admin.post('/api/categories', { name: 42 })).status, 400);
-  assert.equal((await client.admin.post('/api/categories', { name: 'C'.repeat(81) })).status, 400);
+  assert.equal((await admin.post('/api/categories', { body: { name: '   ' } })).status, 400);
+  assert.equal((await admin.post('/api/categories', { body: { name: 42 } })).status, 400);
+  assert.equal((await admin.post('/api/categories', { body: { name: 'C'.repeat(81) } })).status, 400);
 
-  const empty = await client.admin.patch('/api/categories/1', {});
+  const empty = await admin.patch('/api/categories/1', { body: {} });
   assert.equal(empty.status, 400);
   assert.equal(empty.body.error.code, 'invalid_request');
 });
 
 test('crea y modifica equipos y valida su categoría', async (context) => {
-  const client = await startApp(context, { seed: { categories: [{ name: 'Cámaras' }, { name: 'Audio' }] } });
+  const { admin } = await withAdmin(context, { seed: { categories: [{ name: 'Cámaras' }, { name: 'Audio' }] } });
 
-  const created = await client.admin.post('/api/equipment', {
-    categoryId: 1,
-    name: 'Cámara de cine compacta',
-    description: '  Cuerpo con montura intercambiable.  ',
+  const created = await admin.post('/api/equipment', {
+    body: { categoryId: 1, name: 'Cámara de cine compacta', description: '  Cuerpo con montura intercambiable.  ' },
   });
   assert.equal(created.status, 201);
   assert.equal(created.body.equipment.description, 'Cuerpo con montura intercambiable.');
   assert.deepEqual(created.body.equipment.category, { id: 1, name: 'Cámaras' });
   assert.equal(created.body.equipment.activeUnits, 0);
 
-  const moved = await client.admin.patch(`/api/equipment/${created.body.equipment.id}`, { categoryId: 2 });
+  const moved = await admin.patch(`/api/equipment/${created.body.equipment.id}`, { body: { categoryId: 2 } });
   assert.equal(moved.status, 200);
   assert.deepEqual(moved.body.equipment.category, { id: 2, name: 'Audio' });
   assert.equal(moved.body.equipment.name, 'Cámara de cine compacta');
 
-  const duplicated = await client.admin.post('/api/equipment', { categoryId: 2, name: 'cámara de cine compacta' });
+  const duplicated = await admin.post('/api/equipment', { body: { categoryId: 2, name: 'cámara de cine compacta' } });
   assert.equal(duplicated.status, 409);
   assert.equal(duplicated.body.error.code, 'equipment_name_taken');
 
-  const unknownCategory = await client.admin.post('/api/equipment', { categoryId: 99, name: 'Trípode' });
-  assert.equal(unknownCategory.status, 404);
-
-  const missing = await client.admin.patch('/api/equipment/99', { name: 'Trípode' });
-  assert.equal(missing.status, 404);
+  assert.equal((await admin.post('/api/equipment', { body: { categoryId: 99, name: 'Trípode' } })).status, 404);
+  assert.equal((await admin.patch('/api/equipment/99', { body: { name: 'Trípode' } })).status, 404);
 });
 
 test('rechaza un cuerpo que no es JSON válido y no modifica el inventario', async (context) => {
-  const client = await startApp(context, { seed: { categories: [{ name: 'Cámaras' }] } });
+  const { client, admin } = await withAdmin(context, { seed: { categories: [{ name: 'Cámaras' }] } });
 
-  const text = await client.post('/api/categories', {
-    token: credentials.admin,
-    body: 'name=Audio',
-    contentType: 'text/plain',
-  });
+  const text = await admin.post('/api/categories', { body: 'name=Audio', contentType: 'text/plain' });
   assert.equal(text.status, 400);
   assert.equal(text.body.error.code, 'invalid_content_type');
 
-  const broken = await client.post('/api/categories', { token: credentials.admin, body: '{"name":' });
-  assert.equal(broken.status, 400);
-
-  const list = await client.post('/api/categories', { token: credentials.admin, body: [] });
-  assert.equal(list.status, 400);
+  assert.equal((await admin.post('/api/categories', { body: '{"name":' })).status, 400);
+  assert.equal((await admin.post('/api/categories', { body: [] })).status, 400);
 
   assert.equal((await client.get('/api/categories')).body.categories.length, 1);
 });

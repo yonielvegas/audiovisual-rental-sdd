@@ -1,0 +1,53 @@
+<section class="access shell" aria-labelledby="access-title">
+  <header class="panel glass catalog-intro">
+    <h1 id="access-title">Acceder</h1>
+    <p>
+      Una sola entrada para todas las cuentas. El sistema reconoce el rol al iniciar sesión y lleva a cada persona
+      a la pantalla que le corresponde.
+    </p>
+  </header>
+
+  <p id="access-notice" class="feedback" role="status" hidden></p>
+
+  <div class="access-panels">
+    <form class="panel glass form-panel" id="login-form" autocomplete="on">
+      <h2 class="panel-title">Iniciar sesión</h2>
+      <p class="field">
+        <label for="login-username">Usuario</label>
+        <input id="login-username" name="username" type="text" autocomplete="username" maxlength="32" required>
+      </p>
+      <p class="field">
+        <label for="login-password">Contraseña</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="200" required>
+      </p>
+      <div class="field-actions">
+        <button class="button button-primary" type="submit">Entrar</button>
+      </div>
+      <p id="login-status" class="feedback" role="alert" hidden></p>
+    </form>
+
+    <form class="panel glass form-panel" id="register-form" autocomplete="on">
+      <h2 class="panel-title">Crear cuenta</h2>
+      <p class="panel-hint">Las cuentas creadas aquí consultan el catálogo y sus reservas. No administran el inventario.</p>
+      <p class="field">
+        <label for="register-username">Usuario</label>
+        <input id="register-username" name="username" type="text" autocomplete="username" maxlength="32" required>
+      </p>
+      <p class="field">
+        <label for="register-email">Correo <span class="field-note">(opcional)</span></label>
+        <input id="register-email" name="email" type="email" autocomplete="email" maxlength="254">
+      </p>
+      <p class="field">
+        <label for="register-password">Contraseña</label>
+        <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="200" required>
+      </p>
+      <p class="panel-hint">De 3 a 32 caracteres para el usuario y al menos 8 para la contraseña.</p>
+      <div class="field-actions">
+        <button class="button button-secondary" type="submit">Registrarme</button>
+      </div>
+      <p id="register-status" class="feedback" role="alert" hidden></p>
+    </form>
+  </div>
+</section>
+
+<script type="module" src="/access.js"></script>

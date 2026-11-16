@@ -23,6 +23,10 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Los componentes declaran su propio `display`, así que el atributo hidden
+   necesita precedencia para ocultar botones y enlaces de sesión. */
+[hidden] { display: none !important; }
+
 body {
   display: flex;
   flex-direction: column;
@@ -502,4 +506,40 @@ button { cursor: pointer; }
 @media (max-width: 48rem) {
   .record { align-items: flex-start; flex-direction: column; }
   .inline-form input { width: 100%; }
+}
+
+/* Acceso, sesión y roles. */
+
+.site-session { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+.session-user {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: rgb(53 245 194 / 13%);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.access { display: grid; gap: 1.1rem; padding-block: clamp(1.75rem, 5vw, 3.25rem); }
+
+.access-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1.1rem;
+  align-items: start;
+}
+
+.access .field { flex: 1 1 100%; }
+.field-note { color: var(--text-muted); font-weight: 500; }
+
+.empty-state code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  background: rgb(53 245 194 / 14%);
+  font-size: 0.9em;
+}
+
+@media (max-width: 48rem) {
+  .site-session { width: 100%; }
 }

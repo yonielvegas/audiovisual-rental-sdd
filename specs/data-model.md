@@ -1,10 +1,11 @@
 # Modelo de datos
 
-Modelo lógico de catálogo, disponibilidad, cuentas y reservas. Las tablas de categorías, equipos y unidades físicas están implementadas en `db/migrations/002-inventory.sql`. Las de cuentas y reservas se crearán al abordar sus funcionalidades.
+Modelo lógico de catálogo, disponibilidad, cuentas y reservas. Las tablas de categorías, equipos y unidades físicas están implementadas en `db/migrations/002-inventory.sql`, y las de cuentas y sesiones en `db/migrations/003-accounts.sql`. La tabla de reservas se creará al abordar su funcionalidad.
 
 | Entidad | Campos propuestos | Restricciones |
 | --- | --- | --- |
-| Usuario | `id`, `email`, credencial almacenada de forma segura, `role` | Correo único según la normalización que acuerde el equipo. El registro público no concede permisos de administración. |
+| Usuario | `id`, `username`, `email`, `password_hash`, `role`, `created_at`, `updated_at` | Nombre de usuario requerido y único, normalizado a minúsculas, con formato `^[a-z0-9][a-z0-9._-]{2,31}$`. Correo opcional, normalizado a minúsculas y único cuando se indica. Contraseña guardada solo como hash Argon2id. Rol `ADMIN` o `USER`; el registro público no concede permisos de administración. **Implementada.** |
+| Sesión | `token_hash`, `user_id`, `created_at`, `last_seen_at`, `expires_at` | Clave primaria con el SHA-256 de la credencial de sesión, nunca la credencial. Usuario referenciado con borrado en cascada. Caducidad posterior a la creación. **Implementada.** |
 | Categoría | `id`, `name`, `created_at`, `updated_at` | Nombre requerido, sin espacios al borde y de hasta 80 caracteres. Único comparando el nombre en minúsculas. **Implementada.** |
 | Equipo | `id`, `category_id`, `name`, `description`, `created_at`, `updated_at` | Categoría requerida y referenciada. Nombre requerido de hasta 120 caracteres y único dentro de su categoría. Descripción opcional de hasta 600 caracteres. **Implementada.** |
 | Unidad física | `id`, `equipment_id`, `inventory_code`, `active`, `created_at`, `updated_at` | Equipo requerido y referenciado. Código único en todo el inventario con formato `^[A-Z0-9][A-Z0-9-]{2,23}$`. Activa por omisión. **Implementada.** |
@@ -17,6 +18,14 @@ Una categoría agrupa equipos, un equipo agrupa unidades físicas y cada reserva
 `units.id` es el identificador estable: se genera con `GENERATED ALWAYS AS IDENTITY`, no cambia y no se reutiliza, de modo que una reserva puede referenciarlo con una clave foránea. El inventario no ofrece borrado, así que ninguna reserva histórica pierde su unidad; una unidad fuera de servicio pasa a `active = false` y conserva su fila.
 
 `inventory_code` es el identificador legible de la etiqueta física y un índice único lo protege en todo el inventario, no solo dentro de un equipo (RN-01). La aplicación lo normaliza a mayúsculas antes de escribirlo, así que dos escrituras que solo difieren en mayúsculas o espacios compiten por el mismo valor y una de ellas recibe un conflicto. Como el personal puede corregir un código mal etiquetado, no debe usarse como clave foránea. Las garantías completas están en [el contrato de inventario](../docs/inventory-contract.md).
+
+## Credenciales y sesiones
+
+El identificador de acceso es `username`, porque la cuenta administrativa entra como `admin` y no como un correo. El correo queda como dato opcional de contacto.
+
+`password_hash` guarda la codificación PHC de Argon2id, que incluye la sal y los parámetros junto al resumen. Subir el coste más adelante no invalida las contraseñas ya almacenadas, porque cada hash recuerda con qué parámetros se calculó. La contraseña en claro no se escribe en ninguna tabla, ni en ningún registro del servidor.
+
+Las sesiones viven en la base, no en la cookie. El cliente recibe 32 bytes aleatorios y la tabla guarda solo su SHA-256, de modo que una copia de la base no permite suplantar una sesión abierta. Cerrar sesión borra la fila, así que la revocación es inmediata; la caducidad de doce horas solo cubre el caso de no cerrarla. El borrado en cascada desde `users` garantiza que eliminar una cuenta cierre todo lo que tuviera abierto.
 
 ## Integridad de los intervalos
 

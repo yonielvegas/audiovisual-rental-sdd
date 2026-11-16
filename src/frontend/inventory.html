@@ -7,24 +7,7 @@
     </p>
   </header>
 
-  <form class="panel glass form-panel" id="access-form" autocomplete="off">
-    <h2 class="panel-title">Credencial administrativa</h2>
-    <p class="panel-hint">
-      La sesión definitiva corresponde a RF-01. Hasta entonces el backend identifica al personal autorizado
-      con la credencial configurada en el entorno del servidor.
-    </p>
-    <div class="field-row">
-      <p class="field">
-        <label for="access-token">Credencial</label>
-        <input id="access-token" name="token" type="password" autocomplete="off" required>
-      </p>
-      <div class="field-actions">
-        <button class="button button-primary" type="submit">Usar credencial</button>
-        <button class="button button-secondary" type="button" id="access-clear">Olvidar</button>
-      </div>
-    </div>
-    <p id="access-status" class="feedback" role="status">Introduce la credencial para administrar el inventario.</p>
-  </form>
+  <p id="inventory-status" class="feedback" role="status">Cargando el inventario.</p>
 
   <section class="panel glass form-panel" aria-labelledby="categories-title">
     <h2 class="panel-title" id="categories-title">Categorías</h2>

@@ -16,7 +16,9 @@ export class HttpError extends Error {
 }
 
 export const invalidRequest = (message, code = 'invalid_request') => new HttpError(400, code, message);
-export const unauthenticated = (message) => new HttpError(401, 'unauthenticated', message, { 'WWW-Authenticate': 'Bearer' });
+// Sin cabecera `WWW-Authenticate`: la sesión se establece en `/acceso`, no
+// con un esquema de autenticación HTTP que el navegador pueda negociar.
+export const unauthenticated = (message) => new HttpError(401, 'unauthenticated', message);
 export const forbidden = (message) => new HttpError(403, 'forbidden', message);
 export const notFound = (message) => new HttpError(404, 'not_found', message);
 export const conflict = (code, message) => new HttpError(409, code, message);

@@ -1,6 +1,6 @@
 # Contratos API
 
-El navegador y la API comparten origen y usan la ruta base `/api`. La entrega de infraestructura publica la comprobación de salud. Catálogo e inventario (RF-02 y RF-03) están implementados y su contrato detallado, incluidas las garantías para Reservas, está en [el contrato de inventario](../docs/inventory-contract.md). Los contratos de cuentas y reservas siguen siendo propuestas para revisión.
+El navegador y la API comparten origen y usan la ruta base `/api`. La entrega de infraestructura publica la comprobación de salud. Cuentas y sesiones (RF-01) y catálogo e inventario (RF-02 y RF-03) están implementados. El contrato detallado del inventario, incluidas las garantías para Reservas, está en [el contrato de inventario](../docs/inventory-contract.md). Los contratos de disponibilidad y reservas siguen siendo propuestas para revisión.
 
 ## Infraestructura
 
@@ -10,6 +10,26 @@ El navegador y la API comparten origen y usan la ruta base `/api`. La entrega de
 | `GET /api/health` | El backend no puede ejecutar la consulta de comprobación. | `503 {"status":"unavailable","database":"down"}` |
 
 La respuesta expone el estado del servicio y la base de datos. Los detalles de conexión, credenciales y errores internos se reservan para el servidor.
+
+## Cuentas y sesiones implementadas
+
+| Requisito | Método y ruta | Operación | Acceso y respuesta |
+| --- | --- | --- | --- |
+| RF-01 | `POST /api/users` | Registrar con `username`, `password` y `email` opcional. | Público. `201 {"user":{"id","username","role"},"redirect"}` y cookie de sesión. `409 username_taken` o `409 email_taken` si ya existen. |
+| RF-01 | `POST /api/sessions` | Iniciar sesión con `username` y `password`. | Público. `200 {"user","redirect"}` y cookie de sesión. `401` si las credenciales no son válidas. `429 too_many_attempts` tras repetir fallos. |
+| RF-01 | `GET /api/sessions/current` | Consultar la sesión activa. | Público. `200 {"user":{…}}` o `200 {"user":null}` sin sesión. |
+| RF-01 | `DELETE /api/sessions/current` | Cerrar sesión. | Público. `204` y cookie vaciada. La sesión se borra del servidor, así que la revocación es inmediata. |
+
+El identificador de acceso es `username`, no el correo, porque la cuenta administrativa entra como `admin`. El correo es
+opcional y único cuando se indica. El registro público siempre crea cuentas con rol `USER`; el rol `ADMIN` solo lo concede
+el proceso de inicialización descrito en el [README](../README.md).
+
+La sesión viaja en la cookie `sesion`, con `HttpOnly`, `SameSite=Lax`, `Path=/` y `Secure` cuando el despliegue sirve
+HTTPS. El servidor guarda el SHA-256 de la credencial, nunca la credencial, y las contraseñas se almacenan como hash
+Argon2id. `redirect` indica la pantalla que corresponde al rol: `/inventario` para `ADMIN` y `/catalogo` para `USER`.
+
+Las páginas también respetan el rol. `GET /inventario` responde `302` hacia `/acceso?siguiente=%2Finventario` sin sesión y
+`403` con una cuenta cuyo rol no es `ADMIN`.
 
 ## Catálogo e inventario implementados
 
@@ -28,15 +48,14 @@ Un equipo se representa como `{"id","name","description","category":{"id","name"
 del inventario y no considera reservas ni intervalos. El inventario no ofrece borrado: una unidad fuera de servicio pasa a
 `active: false` y conserva su identificador.
 
-Las operaciones administrativas se identifican con `Authorization: Bearer <credencial>`. Es una frontera provisional hasta
-que RF-01 defina la sesión; su firma y su sustitución están descritas en [el contrato de inventario](../docs/inventory-contract.md).
+Las operaciones administrativas exigen una sesión con rol `ADMIN`, establecida por `POST /api/sessions`. El backend
+comprueba el rol antes de leer el cuerpo de la petición, de modo que una solicitud sin permisos nunca llega a modificar el
+inventario.
 
 ## Contratos propuestos del MVP
 
 | Requisito | Método y ruta | Operación | Acceso y respuesta esperada |
 | --- | --- | --- | --- |
-| RF-01 | `POST /api/users` | Registrar con `email` y `password`. | Público. `201` con el identificador y el correo de la cuenta. |
-| RF-01 | `POST /api/sessions` | Iniciar sesión con `email` y `password`. | Público. `200` si las credenciales son válidas, `401` si son inválidas. El mecanismo de sesión está pendiente. |
 | RF-04 | `GET /api/availability?equipmentId={id}&start={instant}&end={instant}` | Consultar unidades disponibles del equipo para un intervalo. | Público. `200` con unidades disponibles o una lista vacía. |
 | RF-05 | `POST /api/reservations` | Crear una reserva enviando `unitId`, `start` y `end`. | Sesión requerida. `201` con la reserva confirmada o `409` por indisponibilidad. |
 | RF-06 | `GET /api/reservations` | Consultar las reservas del titular autenticado. | Sesión requerida. `200` con las reservas propias. |
@@ -45,8 +64,9 @@ que RF-01 defina la sesión; su firma y su sustitución están descritas en [el 
 Los parámetros temporales usan RFC 3339 con desplazamiento explícito y las respuestas temporales se expresan en UTC.
 
 Todos los errores, incluidos los de las rutas ya implementadas, usan un objeto JSON con `error.code` y `error.message`. Se
-emplea `400` para entradas inválidas, `401` cuando falta una credencial válida, `403` para un rol insuficiente, `404` para
+emplea `400` para entradas inválidas, `401` cuando falta una sesión válida, `403` para un rol insuficiente, `404` para
 recursos inexistentes o reservas ajenas, `405` con cabecera `Allow` para un método no admitido, `409` para conflictos de
-unicidad o de disponibilidad y `413` para un cuerpo que excede el límite. Las respuestas de reserva omiten información
+unicidad o de disponibilidad, `413` para un cuerpo que excede el límite y `429` con cabecera `Retry-After` cuando se
+repiten los intentos de inicio de sesión. Las respuestas de reserva omiten información
 interna del conflicto. El catálogo e inventario ya aplican estos códigos; el listado completo está en
 [el contrato de inventario](../docs/inventory-contract.md).

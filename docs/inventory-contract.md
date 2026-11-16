@@ -140,7 +140,7 @@ Todos los errores usan `{ "error": { "code", "message" } }`.
 | 400 | `invalid_request` | Entrada ausente, de tipo incorrecto o fuera de límite. |
 | 400 | `invalid_inventory_code` | El código no cumple `^[A-Z0-9][A-Z0-9-]{2,23}$`. |
 | 400 | `invalid_content_type` | Falta `Content-Type: application/json`. |
-| 401 | `unauthenticated` | Operación administrativa sin credencial o con credencial desconocida. |
+| 401 | `unauthenticated` | Operación protegida sin sesión, o con una sesión caducada o desconocida. |
 | 403 | `forbidden` | Cuenta autenticada sin rol de administración. |
 | 404 | `not_found` | Categoría, equipo o unidad inexistente. |
 | 405 | `method_not_allowed` | Método no admitido. La respuesta incluye `Allow`. |
@@ -150,14 +150,44 @@ Todos los errores usan `{ "error": { "code", "message" } }`.
 Reservas puede reutilizar este formato para sus propios errores, incluido el
 `409` de solapamiento de RN-05.
 
-## 8. Acceso administrativo provisional
+## 8. Identidad y autorización
 
-RF-01 aún no está implementado. Hasta entonces el backend identifica al actor
-con credenciales portadoras configuradas por entorno
-(`INVENTORY_ADMIN_TOKEN` e `INVENTORY_MEMBER_TOKEN`), resueltas por
-`createTokenActorResolver` en `src/backend/access.js`.
+RF-01 está implementado: registro, inicio de sesión único, cierre de sesión y
+roles `ADMIN` y `USER`. Reservas se apoya en la misma frontera.
 
-La frontera que Reservas debe conocer es la firma, no el mecanismo:
-`resolveActor(request)` devuelve `{ id, role }` o `null`, y las rutas declaran
-`admin: true` cuando exigen rol administrativo. Cuando RF-01 aporte la sesión
-acordada, solo se sustituye esa función y las rutas no cambian.
+`resolveActor(request)` (`src/backend/access.js`) devuelve `{ id, username, role }`
+o `null`, resolviendo la cookie de sesión contra la tabla `audiovisual.sessions`.
+Cada ruta declara el rol que exige y el backend lo comprueba antes de invocar el
+manejador y antes de leer el cuerpo:
+
+```js
+['/api/reservations', {
+  POST: { actor: true, handler: … },   // recibe `actor` resuelto, o null
+  GET:  { actor: true, handler: … },
+}]
+```
+
+Para RF-05 y RF-06, Reservas necesita al titular, no un rol concreto: declara
+`actor: true` y usa `actor.id` como `user_id` de la reserva. Ojo con `role`:
+`requireRole` compara el rol de forma exacta, de modo que `role: roles.user`
+**excluiría al administrador**. Para «hace falta una sesión, de cualquier rol»,
+usa `actor: true` y rechaza el caso nulo en el manejador:
+
+```js
+if (!actor) throw unauthenticated('Esta operación requiere haber iniciado sesión.');
+```
+
+Si más adelante hiciera falta esa comprobación en varias rutas, el sitio donde
+añadir un `requireSession` es `src/backend/access.js`, junto a `requireRole`.
+
+La clave foránea recomendada para el titular:
+
+```sql
+user_id integer NOT NULL REFERENCES audiovisual.users (id)
+```
+
+`users.id` es estable por las mismas razones que `units.id`: se genera con
+`GENERATED ALWAYS AS IDENTITY` y no se reutiliza. Borrar una cuenta elimina en
+cascada sus sesiones, no sus reservas, así que Reservas debe decidir con el
+equipo qué hacer con las reservas de una cuenta eliminada antes de permitir
+ese borrado.

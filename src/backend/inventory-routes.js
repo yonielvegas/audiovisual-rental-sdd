@@ -1,11 +1,12 @@
+import { roles } from './roles.js';
 import { readJsonBody, sendJson } from './http.js';
 
 /**
  * Tabla de rutas del catálogo e inventario (specs/api.md).
  *
  * Las rutas públicas de RF-02 se consultan sin sesión. Las marcadas con
- * `admin: true` exigen una cuenta autorizada antes de leer el cuerpo, de modo
- * que una petición sin permisos nunca llega a modificar el inventario.
+ * `role: roles.admin` exigen una sesión con rol ADMIN antes de leer el cuerpo,
+ * de modo que una petición sin permisos nunca llega a modificar el inventario.
  */
 export function inventoryRoutes(inventory) {
   return [
@@ -16,7 +17,7 @@ export function inventoryRoutes(inventory) {
         },
       },
       POST: {
-        admin: true,
+        role: roles.admin,
         handler: async ({ request, response }) => {
           const category = await inventory.createCategory(await readJsonBody(request));
           sendJson(response, 201, { category }, { Location: `/api/categories/${category.id}` });
@@ -26,7 +27,7 @@ export function inventoryRoutes(inventory) {
 
     ['/api/categories/:id', {
       PATCH: {
-        admin: true,
+        role: roles.admin,
         handler: async ({ request, response, params }) => {
           const category = await inventory.updateCategory(params.id, await readJsonBody(request));
           sendJson(response, 200, { category });
@@ -42,7 +43,7 @@ export function inventoryRoutes(inventory) {
         },
       },
       POST: {
-        admin: true,
+        role: roles.admin,
         handler: async ({ request, response }) => {
           const equipment = await inventory.createEquipment(await readJsonBody(request));
           sendJson(response, 201, { equipment }, { Location: `/api/equipment/${equipment.id}` });
@@ -57,7 +58,7 @@ export function inventoryRoutes(inventory) {
         },
       },
       PATCH: {
-        admin: true,
+        role: roles.admin,
         handler: async ({ request, response, params }) => {
           const equipment = await inventory.updateEquipment(params.id, await readJsonBody(request));
           sendJson(response, 200, { equipment });
@@ -67,14 +68,14 @@ export function inventoryRoutes(inventory) {
 
     ['/api/units', {
       GET: {
-        admin: true,
+        role: roles.admin,
         handler: async ({ response, query }) => {
           const units = await inventory.listUnits({ equipmentId: query.get('equipmentId') });
           sendJson(response, 200, { units });
         },
       },
       POST: {
-        admin: true,
+        role: roles.admin,
         handler: async ({ request, response }) => {
           const unit = await inventory.createUnit(await readJsonBody(request));
           sendJson(response, 201, { unit }, { Location: `/api/units/${unit.id}` });
@@ -84,13 +85,13 @@ export function inventoryRoutes(inventory) {
 
     ['/api/units/:id', {
       GET: {
-        admin: true,
+        role: roles.admin,
         handler: async ({ response, params }) => {
           sendJson(response, 200, { unit: await inventory.getUnit(params.id) });
         },
       },
       PATCH: {
-        admin: true,
+        role: roles.admin,
         handler: async ({ request, response, params }) => {
           const unit = await inventory.updateUnit(params.id, await readJsonBody(request));
           sendJson(response, 200, { unit });

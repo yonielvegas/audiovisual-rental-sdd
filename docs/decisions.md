@@ -40,10 +40,28 @@ Decisiones técnicas adoptadas al implementar RF-02 y RF-03. Quedan abiertas a r
 | Los nombres de categoría son únicos y los de equipo son únicos dentro de su categoría, comparando en minúsculas. | Un catálogo público con dos entradas que solo difieren en mayúsculas confunde a quien consulta. Va más allá del mínimo del modelo de datos y necesita confirmación del equipo. |
 | El catálogo publica todos los equipos y muestra su número de unidades activas, sin ocultar los que tienen cero. | No se inventa una regla de publicación que la especificación no fija. Queda pendiente decidir si un equipo sin unidades activas debe ocultarse. |
 | Una desactivación de unidad y una confirmación de reserva se serializan con bloqueos de fila (`FOR UPDATE` frente a `FOR SHARE`). | Responde la pregunta abierta sobre desactivar unidades con reservas vigentes, sin bloquear el inventario completo. |
-| Hasta que RF-01 aporte la sesión, el rol administrativo se identifica con credenciales portadoras configuradas por entorno. | RF-03 y AC-03 exigen comprobar permisos antes de que exista RF-01. La frontera está aislada en `src/backend/access.js` y solo se sustituye esa función cuando llegue la sesión acordada. |
-| La administración se expone en la página `/inventario`, que pide la credencial y la guarda solo en la pestaña actual. | Permite demostrar AC-03 y O-03 en el navegador sin adelantar el diseño de la pantalla de inicio de sesión. |
+| El rol administrativo se comprueba en una única frontera, `src/backend/access.js`, que las rutas consultan declarando el rol que exigen. | Mantiene el control de acceso en un solo lugar. Al implementar RF-01 bastó sustituir la resolución del actor sin tocar ninguna ruta del inventario. |
+| La administración se expone en la página `/inventario`, protegida por rol en el servidor. | Permite demostrar AC-03 y O-03 en el navegador. La página no se sirve siquiera a quien no tiene rol `ADMIN`. |
 
-Pendiente de acuerdo del equipo: qué ocurre con las reservas ya confirmadas de una unidad que se desactiva, si un equipo sin unidades activas debe salir del catálogo público y cómo se da de alta una cuenta administrativa cuando exista RF-01.
+Pendiente de acuerdo del equipo: qué ocurre con las reservas ya confirmadas de una unidad que se desactiva y si un equipo sin unidades activas debe salir del catálogo público.
+
+## Cuentas, sesión y roles de RF-01
+
+Decisiones técnicas adoptadas al implementar el registro, el inicio de sesión y la autorización por rol. El contrato publicado está en [los contratos de API](../specs/api.md).
+
+| Decisión | Motivo |
+| --- | --- |
+| Las contraseñas se guardan con Argon2id (19 MiB, dos pasadas, un hilo), mediante `@node-rs/argon2`. | Es la primera opción de la RFC 9106 y resiste ataques por GPU mejor que bcrypt. El paquete trae binarios precompilados para las plataformas del lockfile, así que funciona con el `npm ci --ignore-scripts` del Dockerfile sin añadir cadena de compilación. La codificación PHC guarda sal y parámetros junto al hash, de modo que subir el coste no invalida las contraseñas existentes. |
+| El identificador de acceso es `username` y no el correo. El correo queda opcional. | La cuenta administrativa acordada entra como `admin`, que no es un correo. Un único campo de identidad mantiene una sola interfaz de acceso para todas las cuentas. |
+| Las sesiones viven en PostgreSQL y la cookie solo lleva una credencial opaca de 32 bytes. La tabla guarda su SHA-256. | Resuelve la decisión abierta sobre el almacenamiento de sesiones. Permite revocar al cerrar sesión, cosa que un testigo autofirmado no permite, y una copia de la base no basta para suplantar una sesión abierta. |
+| La cookie es `HttpOnly`, `SameSite=Lax`, `Path=/` y `Secure` cuando `SESSION_COOKIE_SECURE` está activa. | `HttpOnly` impide que un script lea la credencial. `SameSite=Lax` evita que viaje en escrituras iniciadas desde otro sitio, lo que, junto a exigir `Content-Type: application/json`, cubre el riesgo de falsificación de petición entre sitios sin añadir un testigo aparte. |
+| La sesión caduca a las doce horas desde el inicio, sin renovación deslizante. | Es una política simple y predecible para una demostración académica. Cerrar sesión revoca en el acto, así que la caducidad solo cubre el olvido. |
+| Unas credenciales incorrectas y una cuenta inexistente devuelven la misma respuesta y consumen el mismo tiempo de verificación. | Evita que la API sirva para averiguar qué nombres de usuario están registrados. |
+| Los intentos fallidos se frenan por combinación de usuario y origen, en memoria del proceso. | Detiene una ráfaga de contraseñas contra una cuenta sin que un cliente pueda bloquear a los demás. Un despliegue con varias instancias necesitaría llevar el recuento a un almacén compartido. |
+| La cuenta administrativa la crea `bootstrap-admin.js` junto a las migraciones, con la contraseña tomada de `ADMIN_PASSWORD`. | La contraseña no aparece en el código ni en el repositorio: `.env` está en `.gitignore` y `.env.example` solo lleva un marcador. Una instalación limpia queda operativa sin pasos manuales y el proceso es idempotente. |
+| El registro público siempre crea cuentas con rol `USER`. No hay forma de pedir `ADMIN` desde la API. | El rol administrativo solo se concede desde el entorno del servidor. |
+
+Pendiente de acuerdo del equipo: si hace falta promover cuentas a `ADMIN` desde la propia aplicación, qué ocurre con las reservas de una cuenta eliminada y si la política de caducidad de sesión debe ser deslizante. La contraseña acordada para la demostración es débil para un sistema real; fuera del entorno académico debe sustituirse por una larga y única.
 
 ## Identidad visual
 

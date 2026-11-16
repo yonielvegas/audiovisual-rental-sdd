@@ -1,10 +1,5 @@
-const storageKey = 'inventario.credencial';
-
 const nodes = {
-  accessForm: document.querySelector('#access-form'),
-  accessToken: document.querySelector('#access-token'),
-  accessClear: document.querySelector('#access-clear'),
-  accessStatus: document.querySelector('#access-status'),
+  pageStatus: document.querySelector('#inventory-status'),
   categoryForm: document.querySelector('#category-form'),
   categoryStatus: document.querySelector('#category-status'),
   categoryList: document.querySelector('#category-list'),
@@ -18,28 +13,33 @@ const nodes = {
   unitEquipment: document.querySelector('#unit-equipment'),
 };
 
-// La credencial vive solo en la pestaña actual. RF-01 la sustituirá por la
-// sesión acordada por el equipo.
-let credential = sessionStorage.getItem(storageKey) ?? '';
-
 function report(element, state, message) {
   element.dataset.state = state;
   element.textContent = message;
   element.hidden = !message;
 }
 
-function headers(withBody) {
-  const result = { Accept: 'application/json' };
-  if (credential) result.Authorization = `Bearer ${credential}`;
-  if (withBody) result['Content-Type'] = 'application/json';
-  return result;
+const count = (total, singular, plural) => `${total} ${total === 1 ? singular : plural}`;
+
+// Aviso de lista vacía. Recargar una lista no debe borrar el resultado de la
+// última acción, así que solo se limpia el aviso que puso esta misma función.
+function reportEmpty(element, message) {
+  if (message || element.dataset.state === 'empty') {
+    report(element, 'empty', message);
+  }
 }
 
+/**
+ * La sesión viaja en una cookie `HttpOnly`, así que no hay ninguna credencial
+ * que este módulo pueda leer ni guardar. El backend autoriza cada petición.
+ */
 async function api(path, { method = 'GET', body } = {}) {
+  const headers = { Accept: 'application/json' };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
   const response = await fetch(path, {
     method,
     cache: 'no-store',
-    headers: headers(body !== undefined),
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const payload = await response.json().catch(() => null);
@@ -51,8 +51,6 @@ async function api(path, { method = 'GET', body } = {}) {
   }
   return payload;
 }
-
-const count = (total, singular, plural) => `${total} ${total === 1 ? singular : plural}`;
 
 function option(value, label) {
   const element = document.createElement('option');
@@ -95,9 +93,7 @@ async function loadCategories() {
     option('', 'Selecciona una categoría'),
     ...categories.map((category) => option(category.id, category.name)),
   );
-  if (categories.length === 0) {
-    report(nodes.categoryStatus, 'empty', 'Todavía no hay categorías registradas.');
-  }
+  reportEmpty(nodes.categoryStatus, categories.length === 0 ? 'Todavía no hay categorías registradas.' : '');
   return categories;
 }
 
@@ -111,9 +107,7 @@ async function loadEquipment() {
     option('', 'Selecciona un equipo'),
     ...equipment.map((item) => option(item.id, `${item.name} · ${item.category.name}`)),
   );
-  if (equipment.length === 0) {
-    report(nodes.equipmentStatus, 'empty', 'Todavía no hay equipos registrados.');
-  }
+  reportEmpty(nodes.equipmentStatus, equipment.length === 0 ? 'Todavía no hay equipos registrados.' : '');
   return equipment;
 }
 
@@ -164,34 +158,20 @@ async function loadUnits() {
     item.dataset.active = String(unit.active);
     return item;
   }));
-  if (units.length === 0) {
-    report(nodes.unitStatus, 'empty', 'Todavía no hay unidades registradas.');
-  }
+  reportEmpty(nodes.unitStatus, units.length === 0 ? 'Todavía no hay unidades registradas.' : '');
   return units;
 }
 
 function describeFailure(error) {
-  if (error.status === 401) return 'La credencial no es válida o no se envió. Vuelve a introducirla.';
+  if (error.status === 401) return 'La sesión caducó o se cerró. Vuelve a iniciar sesión para continuar.';
   if (error.status === 403) return 'La cuenta no tiene permisos para administrar el inventario.';
   return error.message;
-}
-
-async function refresh() {
-  try {
-    await loadCategories();
-    await loadEquipment();
-    await loadUnits();
-    report(nodes.accessStatus, 'ready', 'Credencial aceptada. Puedes administrar el inventario.');
-  } catch (error) {
-    report(nodes.accessStatus, 'error', describeFailure(error));
-  }
 }
 
 async function submit(status, work) {
   report(status, 'busy', 'Guardando el cambio.');
   try {
-    const message = await work();
-    report(status, 'ready', message);
+    report(status, 'ready', await work());
     return true;
   } catch (error) {
     report(status, 'error', describeFailure(error));
@@ -205,28 +185,9 @@ async function patchUnit(id, patch) {
     return `Unidad ${unit.id} actualizada. Código ${unit.inventoryCode}, ${unit.active ? 'activa' : 'inactiva'}.`;
   });
   if (saved) {
-    await loadUnits().catch(() => {});
-    await loadEquipment().catch(() => {});
+    await Promise.all([loadUnits().catch(() => {}), loadEquipment().catch(() => {})]);
   }
 }
-
-nodes.accessForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  credential = nodes.accessToken.value.trim();
-  if (!credential) return;
-  sessionStorage.setItem(storageKey, credential);
-  await refresh();
-});
-
-nodes.accessClear.addEventListener('click', () => {
-  credential = '';
-  sessionStorage.removeItem(storageKey);
-  nodes.accessToken.value = '';
-  nodes.categoryList.replaceChildren();
-  nodes.equipmentList.replaceChildren();
-  nodes.unitList.replaceChildren();
-  report(nodes.accessStatus, 'empty', 'Credencial olvidada en esta pestaña.');
-});
 
 nodes.categoryForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -257,8 +218,7 @@ nodes.equipmentForm.addEventListener('submit', async (event) => {
   });
   if (saved) {
     nodes.equipmentForm.reset();
-    await loadEquipment().catch(() => {});
-    await loadCategories().catch(() => {});
+    await Promise.all([loadEquipment().catch(() => {}), loadCategories().catch(() => {})]);
   }
 });
 
@@ -274,18 +234,15 @@ nodes.unitForm.addEventListener('submit', async (event) => {
   });
   if (saved) {
     nodes.unitForm.reset();
-    await loadUnits().catch(() => {});
-    await loadEquipment().catch(() => {});
+    await Promise.all([loadUnits().catch(() => {}), loadEquipment().catch(() => {})]);
   }
 });
 
-// El catálogo público se consulta sin credencial, así que las listas de solo
-// lectura se cargan de inmediato.
-loadCategories()
-  .then(loadEquipment)
-  .catch(() => {});
-
-if (credential) {
-  nodes.accessToken.value = credential;
-  refresh();
+// El backend ya comprobó el rol antes de servir esta página. Si la sesión se
+// cierra en otra pestaña, la primera consulta lo detecta y lo informa.
+try {
+  await Promise.all([loadCategories(), loadEquipment(), loadUnits()]);
+  report(nodes.pageStatus, 'ready', '');
+} catch (error) {
+  report(nodes.pageStatus, 'error', describeFailure(error));
 }

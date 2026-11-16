@@ -31,7 +31,7 @@ jobs:
         run: |
           cp .env.example .env
           docker compose up --build --wait --wait-timeout 90
-      - name: Comprobar inicio, recursos, catálogo e inventario
+      - name: Comprobar inicio, recursos, acceso, catálogo e inventario
         run: |
           set -a
           . ./.env
@@ -42,10 +42,10 @@ jobs:
           psql_query() {
             docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
           }
-          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql')"
-          test "$(psql_query "$applied")" = 2
+          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql', '003-accounts.sql')"
+          test "$(psql_query "$applied")" = 3
           docker compose run --rm migrate
-          test "$(psql_query "$applied")" = 2
+          test "$(psql_query "$applied")" = 3
           test "$(psql_query "SELECT to_regnamespace('audiovisual') IS NOT NULL")" = t
       - name: Comprobar la unicidad del inventario en PostgreSQL
         run: |
@@ -56,6 +56,23 @@ jobs:
           duplicated="SELECT COUNT(*) FROM (SELECT inventory_code FROM audiovisual.units GROUP BY inventory_code HAVING COUNT(*) > 1) AS repetidos"
           test "$(psql_query "$duplicated")" = 0
           test "$(psql_query "SELECT COUNT(*) >= 2 FROM audiovisual.units")" = t
+      - name: Comprobar la cuenta administrativa y el almacenamiento de contraseñas
+        run: |
+          psql_query() {
+            docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$1"
+          }
+          set -a
+          . ./.env
+          set +a
+          # La cuenta existe con el rol ADMIN y una sola vez.
+          test "$(psql_query "SELECT COUNT(*) FROM audiovisual.users WHERE username = '${ADMIN_USERNAME}' AND role = 'ADMIN'")" = 1
+          # La contraseña se guarda como hash Argon2id, nunca en texto plano.
+          test "$(psql_query "SELECT password_hash LIKE '\$argon2id\$%' FROM audiovisual.users WHERE username = '${ADMIN_USERNAME}'")" = t
+          test "$(psql_query "SELECT COUNT(*) FROM audiovisual.users WHERE password_hash = '${ADMIN_PASSWORD}'")" = 0
+          # El registro público de la prueba de humo nunca concede el rol ADMIN.
+          test "$(psql_query "SELECT COUNT(*) FROM audiovisual.users WHERE username LIKE 'humo%' AND role <> 'USER'")" = 0
+          # Cerrar sesión borra la fila, así que la revocación es efectiva.
+          test "$(psql_query "SELECT COUNT(*) FROM audiovisual.sessions s JOIN audiovisual.users u ON u.id = s.user_id WHERE u.role = 'ADMIN'")" = 0
       - name: Comprobar la respuesta con PostgreSQL detenido
         run: |
           docker compose stop db

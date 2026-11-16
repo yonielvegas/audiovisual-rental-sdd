@@ -24,17 +24,17 @@ test('devuelve 503 con respuesta estable si falla PostgreSQL', async (context) =
 test('sirve la página de inicio sin depender de PostgreSQL', async (context) => {
   const check = context.mock.fn(async () => {});
   const client = await startApp(context, { checkDatabase: check });
-  const response = await fetch(client.base);
+  const response = await client.get('/');
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type'), /^text\/html/);
-  assert.match(await response.text(), /equipos audiovisuales/i);
+  assert.match(response.text, /equipos audiovisuales/i);
   assert.equal(check.mock.callCount(), 0);
 });
 
 test('sirve la fotografía y enlaza la landing con el catálogo', async (context) => {
   const check = context.mock.fn(async () => {});
   const client = await startApp(context, { checkDatabase: check });
-  const home = await (await fetch(client.base)).text();
+  const home = (await client.get('/')).text;
   assert.match(home, /href="\/catalogo"[^>]*>\s*Ver catálogo/);
   assert.match(home, /href="\/" aria-current="page"/);
   assert.match(home, /src="\/hero.webp"/);
@@ -49,37 +49,32 @@ test('sirve la fotografía y enlaza la landing con el catálogo', async (context
 test('sirve la página del catálogo público y su módulo de consulta', async (context) => {
   const client = await startApp(context, { seed: catalogSeed });
 
-  const response = await fetch(`${client.base}/catalogo`);
+  const response = await client.get('/catalogo');
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type'), /^text\/html/);
-  const catalog = await response.text();
-  assert.match(catalog, /href="\/catalogo" aria-current="page"/);
-  assert.match(catalog, /Catálogo de equipos/);
-  assert.match(catalog, /id="category-filters"/);
-  assert.match(catalog, /id="equipment-list"/);
-  assert.match(catalog, /src="\/catalog.js"/);
-  assert.match(catalog, /href="\/"/);
+  assert.match(response.text, /href="\/catalogo" aria-current="page"/);
+  assert.match(response.text, /Catálogo de equipos/);
+  assert.match(response.text, /id="category-filters"/);
+  assert.match(response.text, /id="equipment-list"/);
+  assert.match(response.text, /src="\/catalog.js"/);
 
-  const module = await fetch(`${client.base}/catalog.js`);
+  const module = await client.get('/catalog.js');
   assert.equal(module.status, 200);
   assert.match(module.headers.get('content-type'), /javascript/);
-  assert.match(await module.text(), /\/api\/equipment/);
+  assert.match(module.text, /\/api\/equipment/);
 });
 
-test('sirve la página de administración del inventario y su módulo', async (context) => {
-  const client = await startApp(context, { seed: catalogSeed });
+test('ofrece el acceso en el layout y oculta el inventario hasta conocer el rol', async (context) => {
+  const client = await startApp(context);
+  const home = (await client.get('/')).text;
 
-  const response = await fetch(`${client.base}/inventario`);
-  assert.equal(response.status, 200);
-  const page = await response.text();
-  assert.match(page, /href="\/inventario" aria-current="page"/);
-  assert.match(page, /Administración del inventario/);
-  assert.match(page, /id="unit-form"/);
-  assert.match(page, /src="\/inventory.js"/);
+  assert.match(home, /id="session-access"[^>]*href="\/acceso"/);
+  assert.match(home, /id="nav-inventory"[^>]*hidden/);
+  assert.match(home, /id="session-logout"[^>]*hidden/);
 
-  const module = await fetch(`${client.base}/inventory.js`);
+  const module = await client.get('/app.js');
   assert.equal(module.status, 200);
-  assert.match(await module.text(), /\/api\/units/);
+  assert.match(module.text, /\/api\/sessions\/current/);
 });
 
 test('responde 404 con el formato de error del contrato', async (context) => {
