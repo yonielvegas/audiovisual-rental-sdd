@@ -13,9 +13,19 @@ const conflicts = new Map([
 // La unicidad la decide PostgreSQL, no una comprobación previa en la
 // aplicación, para que dos solicitudes simultáneas no puedan registrar el mismo
 // código de inventario (RN-01).
+// Una clave foránea puede fallar por dos motivos opuestos: la fila referenciada
+// no existe al insertar, o todavía la referencian otras al borrar.
+const inUse = new Map([
+  ['equipment_category_id_fkey', () => conflict('category_in_use', 'La categoría todavía agrupa equipos. Muévelos o bórralos antes.')],
+  ['units_equipment_id_fkey', () => conflict('equipment_in_use', 'El equipo todavía tiene unidades registradas. Bórralas antes.')],
+]);
+
 function translate(error) {
   if (error?.code === uniqueViolation && conflicts.has(error.constraint)) {
     return conflicts.get(error.constraint)();
+  }
+  if (error?.code === foreignKeyViolation && inUse.has(error.constraint)) {
+    return inUse.get(error.constraint)();
   }
   if (error?.code === foreignKeyViolation) {
     return invalidRequest('La solicitud referencia un registro que no existe.', 'reference_not_found');
@@ -145,6 +155,11 @@ export function createInventoryStore({ pool }) {
       return updated.rows.length ? findCategory(updated.rows[0].id) : null;
     },
 
+    async deleteCategory(id) {
+      const result = await run('DELETE FROM audiovisual.categories WHERE id = $1', [id]);
+      return result.rowCount > 0;
+    },
+
     async listEquipment({ categoryId = null } = {}) {
       const result = await run(
         `${equipmentSelect} WHERE ($1::int IS NULL OR e.category_id = $1) ORDER BY c.name, e.name`,
@@ -173,6 +188,11 @@ export function createInventoryStore({ pool }) {
         [id, categoryId ?? null, name ?? null, description ?? null],
       );
       return updated.rows.length ? findEquipment(updated.rows[0].id) : null;
+    },
+
+    async deleteEquipment(id) {
+      const result = await run('DELETE FROM audiovisual.equipment WHERE id = $1', [id]);
+      return result.rowCount > 0;
     },
 
     async listUnits({ equipmentId = null, active = null } = {}) {

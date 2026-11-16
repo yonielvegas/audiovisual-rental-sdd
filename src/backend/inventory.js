@@ -131,6 +131,16 @@ export function createInventory({ store }) {
       return updated;
     },
 
+    // Una categoría solo se borra cuando ya no agrupa equipos. El rechazo lo
+    // decide la clave foránea, de modo que un equipo creado en paralelo no se
+    // quede sin categoría.
+    async deleteCategory(id) {
+      const identifier = parseIdentifier(id, 'El identificador de la categoría');
+      if (!(await store.deleteCategory(identifier))) {
+        throw notFound('La categoría indicada no existe.');
+      }
+    },
+
     // --- Administración de equipos (RF-03) ---
 
     async createEquipment(body) {
@@ -165,6 +175,15 @@ export function createInventory({ store }) {
         throw notFound('El equipo indicado no existe.');
       }
       return updated;
+    },
+
+    // Un equipo solo se borra cuando ya no tiene unidades. Como las unidades
+    // nunca se borran, el historial de reservas no puede quedar colgando.
+    async deleteEquipment(id) {
+      const identifier = parseIdentifier(id, 'El identificador del equipo');
+      if (!(await store.deleteEquipment(identifier))) {
+        throw notFound('El equipo indicado no existe.');
+      }
     },
 
     // --- Administración de unidades físicas (RF-03, RN-01) ---

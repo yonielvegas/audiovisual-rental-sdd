@@ -40,13 +40,17 @@ Las páginas también respetan el rol. `GET /inventario` responde `302` hacia `/
 | RF-02 | `GET /api/equipment/{id}` | Consultar un equipo del catálogo. | Público. `200 {"equipment":{…}}` o `404`. |
 | RF-03 | `POST /api/categories`, `PATCH /api/categories/{id}` | Crear o renombrar categorías. | Administrativo. `201` o `200` con la categoría. `409 category_name_taken` si el nombre se repite. |
 | RF-03 | `POST /api/equipment`, `PATCH /api/equipment/{id}` | Crear o modificar equipos y su categoría. | Administrativo. `201` o `200` con el equipo. `409 equipment_name_taken` si el nombre se repite en la categoría. |
+| RF-03 | `DELETE /api/categories/{id}` | Eliminar una categoría vacía. | Administrativo. `204` sin cuerpo. `409 category_in_use` si todavía agrupa equipos y `404` si no existe. |
+| RF-03 | `DELETE /api/equipment/{id}` | Eliminar un equipo sin unidades. | Administrativo. `204` sin cuerpo. `409 equipment_in_use` si todavía tiene unidades y `404` si no existe. |
 | RF-03 | `GET /api/units?equipmentId={id}`, `GET /api/units/{id}` | Listar unidades e identificar sus códigos. | Administrativo. `200` con las unidades. |
 | RF-03 | `POST /api/units`, `PATCH /api/units/{id}` | Registrar una unidad o actualizar su código y su estado activo. | Administrativo. `201` o `200` con la unidad. `409 inventory_code_taken` si el código ya identifica a otra unidad. |
 
 Un equipo se representa como `{"id","name","description","category":{"id","name"},"activeUnits"}` y una unidad como
 `{"id","inventoryCode","active","equipment":{"id","name","category":{"id","name"}}}`. `activeUnits` cuenta unidades activas
-del inventario y no considera reservas ni intervalos. El inventario no ofrece borrado: una unidad fuera de servicio pasa a
-`active: false` y conserva su identificador.
+del inventario y no considera reservas ni intervalos. Las unidades físicas no tienen borrado: una unidad fuera de
+servicio pasa a `active: false` y conserva su identificador, porque las reservas lo referencian. Las categorías y los
+equipos sí se eliminan, pero solo cuando no queda nada que dependa de ellos, de modo que ninguna unidad pueda quedar
+sin equipo ni ningún equipo sin categoría.
 
 Las operaciones administrativas exigen una sesión con rol `ADMIN`, establecida por `POST /api/sessions`. El backend
 comprueba el rol antes de leer el cuerpo de la petición, de modo que una solicitud sin permisos nunca llega a modificar el

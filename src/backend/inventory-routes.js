@@ -1,5 +1,5 @@
 import { roles } from './roles.js';
-import { readJsonBody, sendJson } from './http.js';
+import { readJsonBody, sendEmpty, sendJson } from './http.js';
 
 /**
  * Tabla de rutas del catálogo e inventario (specs/api.md).
@@ -7,6 +7,10 @@ import { readJsonBody, sendJson } from './http.js';
  * Las rutas públicas de RF-02 se consultan sin sesión. Las marcadas con
  * `role: roles.admin` exigen una sesión con rol ADMIN antes de leer el cuerpo,
  * de modo que una petición sin permisos nunca llega a modificar el inventario.
+ *
+ * Las unidades físicas no tienen borrado: salen de servicio con `active: false`
+ * y conservan su fila, porque las reservas referencian su identificador. Ver
+ * docs/inventory-contract.md.
  */
 export function inventoryRoutes(inventory) {
   return [
@@ -31,6 +35,13 @@ export function inventoryRoutes(inventory) {
         handler: async ({ request, response, params }) => {
           const category = await inventory.updateCategory(params.id, await readJsonBody(request));
           sendJson(response, 200, { category });
+        },
+      },
+      DELETE: {
+        role: roles.admin,
+        handler: async ({ response, params }) => {
+          await inventory.deleteCategory(params.id);
+          sendEmpty(response);
         },
       },
     }],
@@ -62,6 +73,13 @@ export function inventoryRoutes(inventory) {
         handler: async ({ request, response, params }) => {
           const equipment = await inventory.updateEquipment(params.id, await readJsonBody(request));
           sendJson(response, 200, { equipment });
+        },
+      },
+      DELETE: {
+        role: roles.admin,
+        handler: async ({ response, params }) => {
+          await inventory.deleteEquipment(params.id);
+          sendEmpty(response);
         },
       },
     }],

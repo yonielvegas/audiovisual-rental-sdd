@@ -94,6 +94,15 @@ export function createMemoryInventoryStore(seed = {}) {
       return categoryView(row);
     },
 
+    // Igual que la clave foránea `ON DELETE RESTRICT` de PostgreSQL.
+    async deleteCategory(id) {
+      if (!categories.has(id)) return false;
+      if ([...equipment.values()].some((row) => row.categoryId === id)) {
+        throw conflict('category_in_use', 'La categoría todavía agrupa equipos. Muévelos o bórralos antes.');
+      }
+      return categories.delete(id);
+    },
+
     async listEquipment({ categoryId = null } = {}) {
       return [...equipment.values()]
         .filter((row) => categoryId === null || row.categoryId === categoryId)
@@ -118,6 +127,14 @@ export function createMemoryInventoryStore(seed = {}) {
       if (taken) throw conflict('equipment_name_taken', 'La categoría ya tiene un equipo con ese nombre.');
       Object.assign(row, { name, categoryId, description: patch.description ?? row.description });
       return equipmentView(row);
+    },
+
+    async deleteEquipment(id) {
+      if (!equipment.has(id)) return false;
+      if ([...units.values()].some((row) => row.equipmentId === id)) {
+        throw conflict('equipment_in_use', 'El equipo todavía tiene unidades registradas. Bórralas antes.');
+      }
+      return equipment.delete(id);
     },
 
     async listUnits({ equipmentId = null, active = null } = {}) {

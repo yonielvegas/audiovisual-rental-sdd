@@ -36,9 +36,13 @@ Garantías:
 
 1. **`units.id` es estable.** No cambia durante la vida de la unidad y no se
    reutiliza. Es el valor que Reservas debe almacenar en su clave foránea.
-2. **El inventario no borra unidades.** No existe ninguna operación de borrado.
-   Una unidad que sale de servicio pasa a `active = false` y conserva su fila,
-   de modo que las reservas históricas nunca pierden su referencia.
+2. **El inventario no borra unidades.** No existe ninguna operación de borrado
+   de unidades, ni en la API ni en la interfaz de administración. Una unidad que
+   sale de servicio pasa a `active = false` y conserva su fila, de modo que las
+   reservas históricas nunca pierden su referencia. Las categorías y los equipos
+   sí admiten `DELETE`, pero solo cuando están vacíos: la clave foránea
+   `ON DELETE RESTRICT` impide borrar un equipo con unidades, así que esa vía
+   tampoco puede dejar una reserva colgando.
 3. **`inventory_code` es único en todo el inventario**, no solo dentro de un
    equipo. Identifica la etiqueta física y es el valor que se muestra al
    personal. La administración puede corregirlo, así que **no debe usarse como
@@ -146,6 +150,7 @@ Todos los errores usan `{ "error": { "code", "message" } }`.
 | 405 | `method_not_allowed` | Método no admitido. La respuesta incluye `Allow`. |
 | 409 | `inventory_code_taken` | El código ya identifica a otra unidad. |
 | 409 | `category_name_taken` · `equipment_name_taken` | Nombre repetido. |
+| 409 | `category_in_use` · `equipment_in_use` | Se intentó borrar algo de lo que todavía dependen otros registros. |
 
 Reservas puede reutilizar este formato para sus propios errores, incluido el
 `409` de solapamiento de RN-05.

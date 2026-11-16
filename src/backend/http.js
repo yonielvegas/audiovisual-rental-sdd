@@ -33,6 +33,11 @@ export function sendJson(response, status, body, headers = {}) {
   response.end(JSON.stringify(body));
 }
 
+export function sendEmpty(response, status = 204, headers = {}) {
+  response.writeHead(status, { 'Cache-Control': 'no-store', ...headers });
+  response.end();
+}
+
 export function sendError(response, error) {
   if (error instanceof HttpError) {
     sendJson(response, error.status, { error: { code: error.code, message: error.message } }, error.headers);

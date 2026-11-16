@@ -352,3 +352,71 @@ test('expone a Reservas solo las unidades activas del equipo', async (context) =
   await assert.rejects(() => inventory.listActiveUnits({ equipmentId: 99 }), { status: 404 });
   await assert.rejects(() => inventory.findActiveUnit('cero'), { status: 400 });
 });
+
+// RF-03. Borrado de categorías y equipos, limitado por las dependencias que
+// protegen el historial. Las unidades físicas no se borran nunca.
+test('borra una categoría vacía y rechaza borrar una que agrupa equipos', async (context) => {
+  const { client, admin } = await withAdmin(context, {
+    seed: {
+      categories: [{ name: 'Cámaras' }, { name: 'Vacía' }],
+      equipment: [{ categoryId: 1, name: 'Cámara A' }],
+    },
+  });
+
+  const inUse = await admin.delete('/api/categories/1');
+  assert.equal(inUse.status, 409);
+  assert.equal(inUse.body.error.code, 'category_in_use');
+
+  const empty = await admin.delete('/api/categories/2');
+  assert.equal(empty.status, 204);
+  assert.equal(empty.text, '');
+
+  assert.deepEqual((await client.get('/api/categories')).body.categories.map(({ name }) => name), ['Cámaras']);
+  assert.equal((await admin.delete('/api/categories/2')).status, 404);
+  assert.equal((await admin.delete('/api/categories/abc')).status, 400);
+});
+
+test('borra un equipo sin unidades y rechaza borrar uno que las tiene', async (context) => {
+  const { client, admin } = await withAdmin(context, {
+    seed: {
+      categories: [{ name: 'Cámaras' }],
+      equipment: [{ categoryId: 1, name: 'Cámara A' }, { categoryId: 1, name: 'Cámara B' }],
+      units: [{ equipmentId: 1, inventoryCode: 'CAM-010', active: false }],
+    },
+  });
+
+  // La unidad está inactiva y aun así protege al equipo: conserva historial.
+  const inUse = await admin.delete('/api/equipment/1');
+  assert.equal(inUse.status, 409);
+  assert.equal(inUse.body.error.code, 'equipment_in_use');
+
+  assert.equal((await admin.delete('/api/equipment/2')).status, 204);
+  assert.deepEqual((await client.get('/api/equipment')).body.equipment.map(({ name }) => name), ['Cámara A']);
+  assert.equal((await admin.get('/api/units')).body.units.length, 1);
+});
+
+test('no ofrece borrado de unidades físicas', async (context) => {
+  const { admin } = await withAdmin(context, {
+    seed: {
+      categories: [{ name: 'Cámaras' }],
+      equipment: [{ categoryId: 1, name: 'Cámara A' }],
+      units: [{ equipmentId: 1, inventoryCode: 'CAM-010' }],
+    },
+  });
+
+  const response = await admin.delete('/api/units/1');
+  assert.equal(response.status, 405);
+  assert.equal(response.headers.get('allow'), 'GET, PATCH');
+  assert.equal((await admin.get('/api/units')).body.units.length, 1);
+});
+
+test('exige rol de administración para borrar', async (context) => {
+  const { client, admin } = await withAdmin(context, { seed: { categories: [{ name: 'Vacía' }] } });
+  const member = await client.as('member');
+
+  assert.equal((await client.delete('/api/categories/1')).status, 401);
+  assert.equal((await member.delete('/api/categories/1')).status, 403);
+  assert.equal((await client.get('/api/categories')).body.categories.length, 1);
+
+  assert.equal((await admin.delete('/api/categories/1')).status, 204);
+});

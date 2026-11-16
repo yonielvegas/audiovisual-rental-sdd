@@ -36,7 +36,8 @@ Decisiones técnicas adoptadas al implementar RF-02 y RF-03. Quedan abiertas a r
 | `units.id` es el identificador estable que referencian las reservas y `inventory_code` es el identificador legible de la etiqueta física. | Permite corregir un código mal etiquetado sin romper ninguna reserva. El alcance pide una identidad individual y estable por unidad. |
 | El código de inventario es único en todo el inventario, no dentro de cada equipo, y se normaliza a mayúsculas. | El personal lee el código sobre el equipo, donde no hay contexto de a qué equipo pertenece. La normalización evita que `cam-001` y `CAM-001` convivan. |
 | La unicidad la decide un índice único de PostgreSQL y la aplicación traduce `23505` a HTTP 409. | Dos solicitudes simultáneas no pueden registrar el mismo código. Una comprobación previa en la aplicación dejaría una ventana de carrera. |
-| El inventario no ofrece borrado. Una unidad fuera de servicio pasa a `active = false`. | Conserva el historial de reservas y hace que AC-03 pueda comprobar que el inventario se preserva. |
+| Las unidades físicas no se borran. Una unidad fuera de servicio pasa a `active = false`. | Conserva el historial de reservas y hace que AC-03 pueda comprobar que el inventario se preserva. Es además una garantía publicada en el contrato que consume Reservas. |
+| Las categorías y los equipos sí se eliminan, pero solo cuando no queda nada que dependa de ellos. El rechazo lo decide la clave foránea `ON DELETE RESTRICT` y la aplicación traduce `23503` a HTTP 409. | La administración pidió poder eliminar registros. Limitarlo a lo que está vacío da esa capacidad sin poner en riesgo las unidades ni las reservas, y evita una comprobación previa con ventana de carrera. |
 | Los nombres de categoría son únicos y los de equipo son únicos dentro de su categoría, comparando en minúsculas. | Un catálogo público con dos entradas que solo difieren en mayúsculas confunde a quien consulta. Va más allá del mínimo del modelo de datos y necesita confirmación del equipo. |
 | El catálogo publica todos los equipos y muestra su número de unidades activas, sin ocultar los que tienen cero. | No se inventa una regla de publicación que la especificación no fija. Queda pendiente decidir si un equipo sin unidades activas debe ocultarse. |
 | Una desactivación de unidad y una confirmación de reserva se serializan con bloqueos de fila (`FOR UPDATE` frente a `FOR SHARE`). | Responde la pregunta abierta sobre desactivar unidades con reservas vigentes, sin bloquear el inventario completo. |
@@ -44,6 +45,16 @@ Decisiones técnicas adoptadas al implementar RF-02 y RF-03. Quedan abiertas a r
 | La administración se expone en la página `/inventario`, protegida por rol en el servidor. | Permite demostrar AC-03 y O-03 en el navegador. La página no se sirve siquiera a quien no tiene rol `ADMIN`. |
 
 Pendiente de acuerdo del equipo: qué ocurre con las reservas ya confirmadas de una unidad que se desactiva y si un equipo sin unidades activas debe salir del catálogo público.
+
+## Interfaz de administración del inventario
+
+| Decisión | Motivo |
+| --- | --- |
+| La administración se organiza en tres pestañas (categorías, equipos y unidades) con tabla, buscador y filtros, sobre los mismos contratos de `/api`. | Cada entidad tiene su propio volumen y sus propios criterios de búsqueda. Separarlas evita una pantalla saturada sin añadir rutas ni lógica de negocio. |
+| Los formularios viven en ventanas modales nativas `<dialog>`, y los errores del servidor se muestran dentro de la ventana en vez de cerrarla. | El elemento nativo aporta foco atrapado, cierre con Escape y fondo inerte sin dependencias. Conservar lo escrito tras un 409 evita rehacer el formulario. |
+| Toda acción destructiva pide confirmación, y la confirmación se resuelve una sola vez con un resolvedor compartido. | Una primera versión con oyentes por invocación podía dejar una promesa pendiente y ejecutar la acción dos veces. El resolvedor único hace imposible ese doble disparo. |
+| En las unidades, la acción destructiva es «Retirar», no «Eliminar». | Refleja en la interfaz la regla de que una unidad conserva su identificador. El texto de la confirmación lo explica. |
+| En pantallas estrechas cada fila de la tabla se presenta como una ficha con etiquetas. | Mantiene legible el inventario en móvil sin desplazamiento horizontal ni una segunda plantilla. |
 
 ## Cuentas, sesión y roles de RF-01
 
