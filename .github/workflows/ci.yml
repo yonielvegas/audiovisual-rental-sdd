@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Pruebas técnicas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Preparar Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Ejecutar las pruebas automatizadas
+        run: |
+          npm ci
+          npm test
+      - name: Arrancar PostgreSQL y la aplicación
+        run: |
+          cp .env.example .env
+          docker compose up --build --wait --wait-timeout 90
+      - name: Comprobar inicio, recursos y salud
+        run: npm run test:smoke
+      - name: Comprobar la migración inicial y su segunda ejecución
+        run: |
+          query="SELECT COUNT(*) FROM public.schema_migrations WHERE version = '001-baseline.sql'"
+          test "$(docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$query")" = 1
+          docker compose run --rm migrate
+          test "$(docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$query")" = 1
+          test "$(docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "SELECT to_regnamespace('audiovisual') IS NOT NULL")" = t
+      - name: Comprobar la respuesta con PostgreSQL detenido
+        run: |
+          docker compose stop db
+          npm run test:smoke -- --database-down
+      - name: Mostrar los registros de Compose
+        if: ${{ failure() && hashFiles('.env') != '' }}
+        run: docker compose logs --no-color
+      - name: Apagar la composición de prueba
+        if: ${{ always() && hashFiles('.env') != '' }}
+        run: docker compose down --volumes --remove-orphans

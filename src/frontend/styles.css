@@ -1,0 +1,72 @@
+:root {
+  color-scheme: light;
+  font-family: "DM Sans", system-ui, sans-serif;
+  color: #172a27;
+  background: #f4f7f5;
+  line-height: 1.55;
+}
+
+body {
+  display: grid;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: clamp(1.25rem, 5vw, 4rem);
+}
+
+main {
+  width: min(100%, 43rem);
+  margin-inline: auto;
+}
+
+h1 {
+  max-width: 24ch;
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 3.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.description {
+  max-width: 54ch;
+  margin-block: 1rem 1.75rem;
+  color: #405550;
+  font-size: 1.125rem;
+}
+
+.status {
+  display: flex;
+  align-items: baseline;
+  width: fit-content;
+  box-sizing: border-box;
+  max-width: 100%;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #becdca;
+  border-radius: 0.5rem;
+  color: #304943;
+  background: #e9f0ed;
+}
+
+.status::before {
+  flex: 0 0 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.status[data-state="ready"] {
+  border-color: #abcdbb;
+  color: #204e37;
+  background: #e5f2e9;
+}
+
+.status[data-state="unavailable"] {
+  border-color: #ddbd9b;
+  color: #673710;
+  background: #f9ecdf;
+}

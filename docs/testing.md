@@ -30,3 +30,16 @@ Los escenarios se vinculan con los [criterios de aceptación](../specs/acceptanc
 | AC-10 | Infraestructura | CI del commit candidato y arranque desde un clon limpio. | Enlace al run de GitHub Actions y registro de instalación. | Pendiente |
 
 Para cada ejecución registra fecha, ejecutor, commit, entorno, comando o pasos, resultado esperado, resultado observado y enlace a la evidencia. Para el cambio inesperado, conserva el criterio actualizado y la prueba correspondiente junto con el resultado anterior y posterior al cambio.
+
+## Evidencia local del 15 de noviembre de 2026
+
+Comprobaciones realizadas por Codex durante la preparación de infraestructura, con Node.js 24.16 y PostgreSQL 17.11 en Windows.
+
+| Criterio | Ejecución observada | Resultado |
+| --- | --- | --- |
+| AC-08 | Se ejecutó `npm run migrate` dos veces con PostgreSQL nativo en un entorno de prueba aislado. Se consultó luego `public.schema_migrations` y la existencia del esquema. | La primera ejecución aplicó `001-baseline.sql`. La segunda informó que no había migraciones pendientes. Se encontró una entrada y el esquema `audiovisual` estaba presente. |
+| AC-09 | Se ejecutaron `npm test`, `npm run test:smoke` y la variante `--database-down`. Se abrió la página en Edge. | Tres pruebas HTTP automatizadas correctas. Inicio y dos recursos estáticos correctos. Salud 200 con PostgreSQL disponible y 503 al detenerlo. Edge mostró la página de inicio y el estado conectado. |
+| AC-08, AC-10 | Se ejecutó `docker compose config --quiet` y se intentó el arranque de la composición. | Configuración válida. La sesión de Windows no obtuvo acceso al motor Docker y el arranque completo por Compose sigue pendiente. |
+| AC-10 | El flujo `.github/workflows/ci.yml` está preparado para ejecutarse en GitHub. | La ejecución remota y la prueba de instalación por otra persona del equipo están pendientes. |
+
+En un clon local independiente del paquete Git del historial, se comprobó el commit de infraestructura `602948e`. Pasaron `npm ci`, las tres pruebas de `npm test` y `docker compose config --quiet` después de copiar `.env.example`. Quedan pendientes el clon desde GitHub y el arranque completo por un integrante del equipo.

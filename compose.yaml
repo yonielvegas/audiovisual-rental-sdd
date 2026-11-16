@@ -1,0 +1,49 @@
+x-postgres-env: &postgres-env
+  PGHOST: db
+  PGPORT: 5432
+  PGDATABASE: ${PGDATABASE:-audiovisual}
+  PGUSER: ${PGUSER:-audiovisual}
+  PGPASSWORD: ${PGPASSWORD:?Copy .env.example to .env and set PGPASSWORD}
+
+x-app-image: &app-image
+  image: audiovisual-rental-sdd-local
+  build: .
+  pull_policy: never
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-audiovisual}
+      POSTGRES_USER: ${PGUSER:-audiovisual}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?Copy .env.example to .env and set PGPASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 3s
+      timeout: 3s
+      retries: 15
+  migrate:
+    <<: *app-image
+    command: ["node", "src/backend/migrate.js"]
+    environment: *postgres-env
+    depends_on:
+      db:
+        condition: service_healthy
+  app:
+    <<: *app-image
+    environment: *postgres-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then(response => { if (!response.ok) process.exitCode = 1; }).catch(() => { process.exitCode = 1; });"]
+      interval: 5s
+      timeout: 4s
+      retries: 10
+
+volumes:
+  postgres-data:
