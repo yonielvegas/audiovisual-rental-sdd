@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { initialSchedule, localDateTime, minimumScheduleTime } from '../src/frontend/reservation-schedule.js';
+import { initialSchedule, localDateTime, minimumScheduleTime, hourInPeriod, clockTime } from '../src/frontend/reservation-schedule.js';
 
 test('el horario mínimo comienza en el siguiente minuto, incluso en el segundo cero', () => {
   for (const seconds of [0, 37, 59]) {
@@ -44,5 +44,19 @@ test('un enlace con fechas ausentes o inválidas recibe valores seguros', () => 
     const result = initialSchedule(requested, now);
     assert.ok(result.start > now);
     assert.equal(result.end - result.start, 3_600_000);
+  }
+});
+
+
+test('AM/PM distingue medianoche, mediodía y las horas de ambos periodos', () => {
+  assert.equal(hourInPeriod(12, 'AM'), 0);
+  assert.equal(hourInPeriod(12, 'PM'), 12);
+  assert.equal(hourInPeriod(1, 'AM'), 1);
+  assert.equal(hourInPeriod(1, 'PM'), 13);
+  assert.equal(clockTime(new Date(2035, 5, 10, 0, 5)), '12:05 AM');
+  assert.equal(clockTime(new Date(2035, 5, 10, 12, 5)), '12:05 PM');
+  for (let hour = 0; hour < 24; hour++) {
+    const [time, period] = clockTime(new Date(2035, 5, 10, hour, 39)).split(' ');
+    assert.equal(hourInPeriod(Number(time.split(':')[0]), period), hour);
   }
 });

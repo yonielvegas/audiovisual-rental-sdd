@@ -5,7 +5,7 @@ const feedback = el('#reservation-status');
 const availabilityForm = el('#availability-form');
 const ownList = el('#own-reservations');
 const dialog = el('#reservation-confirm');
-const formatDate = (value) => new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+const formatDate = (value) => new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short', hour12: true }).format(new Date(value));
 const intervalLabel = ({ start, end }) => `${formatDate(start)} → ${formatDate(end)}`;
 let pendingAction = null;
 let lastTrigger = null;

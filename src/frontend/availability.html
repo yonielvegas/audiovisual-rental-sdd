@@ -17,7 +17,7 @@
         <span class="schedule-label" id="start-date-label">Fecha de recogida</span>
         <button class="schedule-date" id="start-date" type="button" data-date-field="start" aria-haspopup="dialog" aria-controls="reservation-calendar" aria-labelledby="start-date-label start-date-value"><span class="schedule-calendar-icon" aria-hidden="true"></span><span id="start-date-value"></span><span aria-hidden="true">⌄</span></button>
         <input id="reservation-start" name="start" type="hidden">
-        <div class="schedule-time"><span class="schedule-clock-icon" aria-hidden="true"></span><label>Hora<select id="start-hour" aria-label="Hora de inicio"></select></label><span class="schedule-colon" aria-hidden="true">:</span><label>Minutos<select id="start-minute" aria-label="Minutos de inicio"></select></label></div>
+        <div class="schedule-time"><span class="schedule-clock-icon" aria-hidden="true"></span><label>Hora<select id="start-hour" aria-label="Hora de inicio"></select></label><span class="schedule-colon" aria-hidden="true">:</span><label>Minutos<select id="start-minute" aria-label="Minutos de inicio"></select></label><label>Periodo<select id="start-period" aria-label="Periodo de inicio"><option value="AM">AM</option><option value="PM">PM</option></select></label></div>
         <p class="schedule-hint" id="start-hint" aria-live="polite"></p>
       </fieldset>
       <fieldset class="schedule-card">
@@ -25,7 +25,7 @@
         <span class="schedule-label" id="end-date-label">Fecha de devolución</span>
         <button class="schedule-date" id="end-date" type="button" data-date-field="end" aria-haspopup="dialog" aria-controls="reservation-calendar" aria-labelledby="end-date-label end-date-value"><span class="schedule-calendar-icon" aria-hidden="true"></span><span id="end-date-value"></span><span aria-hidden="true">⌄</span></button>
         <input id="reservation-end" name="end" type="hidden">
-        <div class="schedule-time"><span class="schedule-clock-icon" aria-hidden="true"></span><label>Hora<select id="end-hour" aria-label="Hora de fin"></select></label><span class="schedule-colon" aria-hidden="true">:</span><label>Minutos<select id="end-minute" aria-label="Minutos de fin"></select></label></div>
+        <div class="schedule-time"><span class="schedule-clock-icon" aria-hidden="true"></span><label>Hora<select id="end-hour" aria-label="Hora de fin"></select></label><span class="schedule-colon" aria-hidden="true">:</span><label>Minutos<select id="end-minute" aria-label="Minutos de fin"></select></label><label>Periodo<select id="end-period" aria-label="Periodo de fin"><option value="AM">AM</option><option value="PM">PM</option></select></label></div>
         <p class="schedule-hint" id="end-hint" aria-live="polite"></p>
       </fieldset>
     </div>

@@ -3,6 +3,8 @@ const pad = (value) => String(value).padStart(2, '0');
 export const localDateTime = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 const dateKey = (date) => localDateTime(date).slice(0, 10);
 const fromParts = (day, hour, minutes) => new Date(`${day}T${pad(hour)}:${pad(minutes)}`);
+export const hourInPeriod = (hour, period) => Number(hour) % 12 + (period === 'PM' ? 12 : 0);
+export const clockTime = (date) => `${pad(date.getHours() % 12 || 12)}:${pad(date.getMinutes())} ${date.getHours() < 12 ? 'AM' : 'PM'}`;
 
 export function minimumScheduleTime(now, start = null) {
   return new Date(Math.max(Math.floor(now.getTime() / minute) * minute + minute, start ? start.getTime() + minute : 0));
@@ -48,14 +50,20 @@ export function createSchedulePicker({ form, requested }) {
     const day = dateKey(selected);
     const hour = el(`#${field}-hour`);
     const minutes = el(`#${field}-minute`);
-    if (!hour.options.length) hour.replaceChildren(...Array.from({ length: 24 }, (_, n) => new Option(pad(n), String(n))));
+    const period = el(`#${field}-period`);
+    period.value = selected.getHours() < 12 ? 'AM' : 'PM';
+    if (!hour.options.length) hour.replaceChildren(...Array.from({ length: 12 }, (_, n) => new Option(pad(n + 1), String(n + 1))));
     if (!minutes.options.length) minutes.replaceChildren(...Array.from({ length: 60 }, (_, n) => new Option(pad(n), String(n))));
     for (const option of hour.options) {
-      const value = Number(option.value);
+      const value = hourInPeriod(option.value, period.value);
       option.disabled = !Array.from({ length: 60 }, (_, n) => n).some((n) => validTime(day, value, n, min));
     }
     for (const option of minutes.options) option.disabled = !validTime(day, selected.getHours(), Number(option.value), min);
-    hour.value = String(selected.getHours());
+    for (const option of period.options) {
+      option.disabled = !Array.from({ length: 12 }, (_, n) => n + 1).some((h) =>
+        Array.from({ length: 60 }, (_, n) => n).some((m) => validTime(day, hourInPeriod(h, option.value), m, min)));
+    }
+    hour.value = String(selected.getHours() % 12 || 12);
     minutes.value = String(selected.getMinutes());
   }
 
@@ -67,8 +75,8 @@ export function createSchedulePicker({ form, requested }) {
       const min = minimum(field);
       const sameDay = dateKey(min) === dateKey(state[field]);
       el(`#${field}-hint`).textContent = sameDay
-        ? `Disponible desde las ${pad(min.getHours())}:${pad(min.getMinutes())}. Formato de 24 horas.`
-        : 'Elige la hora y los minutos. Formato de 24 horas.';
+        ? `Disponible desde las ${clockTime(min)}.`
+        : 'Elige la hora, los minutos y AM o PM.';
     }
     const valid = state.start >= minimum('start') && state.end >= minimum('end');
     el('#availability-submit').disabled = el('#reservation-equipment').disabled || !valid;
@@ -165,11 +173,11 @@ export function createSchedulePicker({ form, requested }) {
   for (const field of ['start', 'end']) {
     const button = el(`#${field}-date`);
     button.addEventListener('click', () => openCalendar(field, button));
-    for (const part of ['hour', 'minute']) {
+    for (const part of ['hour', 'minute', 'period']) {
       el(`#${field}-${part}`).addEventListener('focus', refresh);
       el(`#${field}-${part}`).addEventListener('change', () => {
         const day = dateKey(state[field]);
-        const hour = Number(el(`#${field}-hour`).value);
+        const hour = hourInPeriod(el(`#${field}-hour`).value, el(`#${field}-period`).value);
         const minutes = Number(el(`#${field}-minute`).value);
         commit(field, fromParts(day, hour, minutes));
       });
