@@ -1,8 +1,8 @@
 # Reglas de negocio
 
-La identidad individual de las unidades, la reserva por intervalos, la prevención de superposiciones y el acceso a reservas propias provienen del alcance confirmado. Las reglas operativas siguientes detallan una propuesta para revisión.
+La identidad individual de las unidades, la reserva por intervalos, la prevención de superposiciones y el acceso a reservas propias provienen del alcance confirmado. RF-01 a RF-06 implementan las siguientes reglas, con la política de fechas y cancelación confirmada el 17 de noviembre de 2026.
 
-| ID | Requisito | Regla propuesta |
+| ID | Requisito | Regla |
 | --- | --- | --- |
 | RN-01 | RF-03 | Cada unidad física pertenece a un equipo y tiene un código de inventario único en todo el inventario. Su identificador interno es estable y la unidad nunca se borra: sale de servicio pasando a inactiva. El personal autorizado administra categorías, equipos y unidades. **Implementada.** |
 | RN-02 | RF-04, RF-05 | Cada reserva corresponde a una sola unidad física. Se acepta un intervalo con inicio estrictamente anterior al fin. Los instantes reciben formato RFC 3339 con desplazamiento explícito y se normalizan a UTC. |
@@ -13,4 +13,6 @@ La identidad individual de las unidades, la reserva por intervalos, la prevenci�
 | RN-07 | RF-01, RF-03, RF-06 | El backend identifica al titular mediante la sesión, guardada en el servidor y referida por una cookie `HttpOnly`. Solo el titular consulta o cancela su reserva y solo una cuenta con rol `ADMIN` administra el inventario. El registro público crea cuentas con rol `USER`. **Implementada para cuentas e inventario.** |
 | RN-08 | RF-01 | Las contraseñas se guardan solo como hash Argon2id. La respuesta a unas credenciales incorrectas es idéntica a la de una cuenta inexistente, y los intentos repetidos contra una misma cuenta y origen se frenan. **Implementada.** |
 
-El equipo debe confirmar si admite reservas con inicio pasado, la precisión y duración de los intervalos, y el plazo de cancelación. La desactivación de una unidad y la confirmación de una reserva ya se serializan con bloqueos de fila, según [el contrato de inventario](../docs/inventory-contract.md); queda por acordar qué ocurre con las reservas ya confirmadas de esa unidad. El rol administrativo se concede en el arranque desde el entorno; queda por acordar si el equipo necesita además promover cuentas desde la propia aplicación.
+Política de RF-04 a RF-06 confirmada por la persona solicitante el 17 de noviembre de 2026: una nueva reserva debe comenzar en el futuro; su titular puede cancelarla estrictamente antes del inicio, sin exigir 24 horas ni otra anticipación mínima. Una reserva cancelada no se reactiva y un segundo intento de cancelación devuelve conflicto. La consulta de disponibilidad puede incluir fechas pasadas. Se admiten intervalos de cualquier duración positiva con precisión máxima de milisegundos, sin redondear entradas. Se rechazan fechas inexistentes, segundos intercalares y el desplazamiento desconocido `-00:00`. Se aceptan `Z` y desplazamientos explícitos conocidos, normalizados a UTC.
+
+Las reservas confirmadas se conservan si se retira su unidad; la unidad sale de disponibilidad y su titular puede cancelar según la misma política. No se notifican ni se reasignan automáticamente. La desactivación y la confirmación se serializan según [el contrato de inventario](../docs/inventory-contract.md). La promoción de cuentas y el borrado de titulares quedan fuera de esta entrega.

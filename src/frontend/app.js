@@ -4,6 +4,7 @@ const accessLink = document.querySelector('#session-access');
 const userLabel = document.querySelector('#session-user');
 const logoutButton = document.querySelector('#session-logout');
 const inventoryLink = document.querySelector('#nav-inventory');
+const reservationsLink = document.querySelector('#nav-reservations');
 
 function showStatus(state, message) {
   statusElement.dataset.state = state;
@@ -40,6 +41,7 @@ function showSession(user) {
   userLabel.hidden = !signedIn;
   logoutButton.hidden = !signedIn;
   inventoryLink.hidden = !(signedIn && user.role === 'ADMIN');
+  reservationsLink.hidden = !signedIn;
   userLabel.textContent = signedIn ? user.username : '';
   userLabel.title = signedIn ? `Rol ${user.role}` : '';
 }

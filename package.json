@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node src/backend/server.js",
     "migrate": "node src/backend/migrate.js && node src/backend/bootstrap-admin.js",
-    "test": "node --test tests/app.test.js tests/auth.test.js tests/inventory.test.js",
+    "test": "node --test tests/app.test.js tests/auth.test.js tests/inventory.test.js tests/reservations.test.js tests/schedule.test.js",
+    "test:integration": "node --test tests/reservations.postgres.test.js",
     "test:smoke": "node tests/smoke.mjs",
     "bootstrap:admin": "node src/backend/bootstrap-admin.js"
   },

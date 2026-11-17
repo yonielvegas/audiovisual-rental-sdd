@@ -8,6 +8,8 @@ import { hashPassword } from '../../src/backend/passwords.js';
 import { createLoginThrottle } from '../../src/backend/throttle.js';
 import { createMemoryAccountStore } from './memory-account-store.js';
 import { createMemoryInventoryStore } from './memory-inventory-store.js';
+import { createMemoryReservationStore } from './memory-reservation-store.js';
+import { createReservations } from '../../src/backend/reservations.js';
 
 // Cuentas ficticias de la suite. Las contraseñas se generan en cada ejecución,
 // de modo que ninguna queda escrita en el repositorio. La contraseña real del
@@ -55,9 +57,13 @@ export async function startApp(context, {
     ...(now ? { now } : {}),
   });
 
+  const inventory = createInventory({ store: inventoryStore });
   const app = await createApp({
     checkDatabase,
-    inventory: createInventory({ store: inventoryStore }),
+    inventory,
+    reservations: createReservations({
+      store: createMemoryReservationStore({ inventoryStore, ...(now ? { now } : {}) }), inventory, ...(now ? { now } : {}),
+    }),
     accounts,
     resolveActor: createSessionActorResolver({ accounts }),
   });

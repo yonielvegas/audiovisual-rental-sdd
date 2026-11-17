@@ -43,11 +43,14 @@ jobs:
             consulta="$1"
             docker compose exec -T db psql -XAt -v ON_ERROR_STOP=1 -U audiovisual -d audiovisual -c "$consulta"
           }
-          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql', '003-accounts.sql', '004-catalog-details.sql', '005-catalog-seed.sql')"
-          test "$(psql_query "$applied")" = 5
+          applied="SELECT COUNT(*) FROM public.schema_migrations WHERE version IN ('001-baseline.sql', '002-inventory.sql', '003-accounts.sql', '004-catalog-details.sql', '005-catalog-seed.sql', '006-reservations.sql')"
+          test "$(psql_query "$applied")" = 6
           docker compose run --rm migrate
-          test "$(psql_query "$applied")" = 5
+          test "$(psql_query "$applied")" = 6
           test "$(psql_query "SELECT to_regnamespace('audiovisual') IS NOT NULL")" = t
+      - name: Comprobar reservas, cancelaciones y concurrencia real en PostgreSQL
+        run: |
+          docker compose run --rm --no-deps -v "$PWD/tests:/app/tests:ro" -e RESERVATION_TEST_DATABASE=1 app npm run test:integration
       - name: Comprobar la unicidad del inventario en PostgreSQL
         run: |
           psql_query() {

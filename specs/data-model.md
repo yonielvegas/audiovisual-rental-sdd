@@ -1,8 +1,8 @@
 # Modelo de datos
 
-Modelo lógico de catálogo, disponibilidad, cuentas y reservas. Las tablas de categorías, equipos y unidades físicas están implementadas en `db/migrations/002-inventory.sql`, sus datos de presentación en `db/migrations/004-catalog-details.sql`, y las de cuentas y sesiones en `db/migrations/003-accounts.sql`. `db/migrations/005-catalog-seed.sql` carga el catálogo de demostración. La tabla de reservas se creará al abordar su funcionalidad.
+Modelo lógico de catálogo, disponibilidad, cuentas y reservas. Las tablas de categorías, equipos y unidades físicas están implementadas en `db/migrations/002-inventory.sql`, sus datos de presentación en `db/migrations/004-catalog-details.sql`, y las de cuentas y sesiones en `db/migrations/003-accounts.sql`. `db/migrations/005-catalog-seed.sql` carga el catálogo de demostración. La tabla de reservas está implementada en `db/migrations/006-reservations.sql`.
 
-| Entidad | Campos propuestos | Restricciones |
+| Entidad | Campos | Restricciones |
 | --- | --- | --- |
 | Usuario | `id`, `username`, `email`, `password_hash`, `role`, `created_at`, `updated_at` | Nombre de usuario requerido y único, normalizado a minúsculas, con formato `^[a-z0-9][a-z0-9._-]{2,31}$`. Correo opcional, normalizado a minúsculas y único cuando se indica. Contraseña guardada solo como hash Argon2id. Rol `ADMIN` o `USER`; el registro público no concede permisos de administración. **Implementada.** |
 | Sesión | `token_hash`, `user_id`, `created_at`, `last_seen_at`, `expires_at` | Clave primaria con el SHA-256 de la credencial de sesión, nunca la credencial. Usuario referenciado con borrado en cascada. Caducidad posterior a la creación. **Implementada.** |
@@ -39,8 +39,12 @@ El identificador de acceso es `username`, porque la cuenta administrativa entra 
 
 Las sesiones viven en la base, no en la cookie. El cliente recibe 32 bytes aleatorios y la tabla guarda solo su SHA-256, de modo que una copia de la base no permite suplantar una sesión abierta. Cerrar sesión borra la fila, así que la revocación es inmediata; la caducidad de doce horas solo cubre el caso de no cerrarla. El borrado en cascada desde `users` garantiza que eliminar una cuenta cierre todo lo que tuviera abierto.
 
+## Reservas implementadas · Issue #5
+
+`006-reservations.sql` implementa la entidad Reserva con claves foráneas restrictivas hacia `users` y `units`, fechas finitas, inicio anterior al fin, estados `confirmed`/`cancelled` y coherencia entre estado y `cancelled_at`. El índice `(user_id, starts_at DESC, id DESC)` apoya el listado propio. El inicio futuro y el plazo de cancelación se comprueban al escribir, con el reloj de la base, después de esperar bloqueos; no son restricciones estáticas que invaliden el historial al avanzar el tiempo.
+
 ## Integridad de los intervalos
 
-La propuesta usa `btree_gist` y una restricción de exclusión parcial en PostgreSQL que compara igualdad de `unit_id` y superposición del rango `tstzrange(starts_at, ends_at, '[)')` solo para reservas `confirmed`. Así, dos transacciones concurrentes que compiten por la misma unidad e intervalo producen una confirmación y un conflicto. La aplicación traduce el código `23P01` de esa restricción concreta a HTTP 409. Las cancelaciones quedan fuera de la restricción.
+La implementación usa `btree_gist` y una restricción de exclusión parcial en PostgreSQL que compara igualdad de `unit_id` y superposición del rango `tstzrange(starts_at, ends_at, '[)')` solo para reservas `confirmed`. Así, dos transacciones concurrentes que compiten por la misma unidad e intervalo producen una confirmación y un conflicto. La aplicación traduce el código `23P01` de esa restricción concreta a HTTP 409. Las cancelaciones quedan fuera de la restricción.
 
-El registro verifica que la unidad sigue activa dentro de la transacción de escritura. La coordinación con una desactivación concurrente ya está resuelta: la reserva toma un bloqueo compartido de la fila de la unidad con `lockActiveUnit` y la administración toma el bloqueo exclusivo al actualizarla, de modo que ambas operaciones se serializan. El equipo todavía debe acordar el almacenamiento de sesiones y qué ocurre con las reservas ya confirmadas de una unidad que se desactiva.
+El registro verifica que la unidad sigue activa dentro de la transacción de escritura. La coordinación con una desactivación concurrente ya está resuelta: la reserva toma un bloqueo compartido de la fila de la unidad con `lockActiveUnit` y la administración toma el bloqueo exclusivo al actualizarla, de modo que ambas operaciones se serializan. Las sesiones viven en PostgreSQL. Retirar una unidad conserva las reservas anteriores y el titular puede cancelarlas según la política vigente.

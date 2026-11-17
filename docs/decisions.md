@@ -1,5 +1,21 @@
 # Registro de decisiones
 
+## Reservas y disponibilidad · 17 de noviembre de 2026
+
+Decisiones adoptadas para implementar reservas y disponibilidad en la Issue #5, respetando las cuentas, las sesiones y el contrato de inventario existentes.
+
+| Decisión | Motivo |
+| --- | --- |
+| Crear reservas únicamente con inicio futuro y permitir que su titular las cancele antes del inicio, sin anticipación mínima. | Política confirmada por la persona solicitante para atender imprevistos y liberar el equipo sin exigir 24 horas de aviso. Solo se cancela antes del inicio; se conserva el historial y el intervalo queda libre al confirmarse la cancelación. |
+| Reservar por unidad física y consultar su disponibilidad para un intervalo concreto. | Cada ejemplar tiene una identidad estable y una ocupación propia. La consulta muestra unidades activas sin reservas confirmadas superpuestas y vuelve a comprobar su estado al confirmar, porque consultar no retiene la unidad. |
+| Usar intervalos semiabiertos `[inicio, fin)` y fechas con zona horaria explícita, normalizadas a UTC. | Permite encadenar alquileres: uno puede terminar a las 11:00 y otro comenzar a esa hora. La zona explícita y UTC permiten comparar horarios equivalentes; se validan las fechas y se admite precisión de hasta milisegundos. |
+| Proteger la creación y la cancelación con transacciones y restricciones de PostgreSQL. | La exclusión GiST evita dobles reservas incluso con solicitudes simultáneas. El bloqueo de la unidad coordina la creación con una retirada administrativa, y el reloj de la base revalida los plazos después de esperar bloqueos. |
+| Responder los conflictos de disponibilidad con HTTP 409 y reintentar de forma limitada los interbloqueos. | HTTP 409 permite informar de la indisponibilidad y consultar otra unidad o fecha. Un interbloqueo detectado en pruebas motivó reintentar la transacción completa hasta dos veces, evitando repeticiones indefinidas y sin exponer datos ajenos. |
+| Obtener el titular desde la sesión y conservar las garantías del inventario existente. | La sesión identifica al titular: tanto USER como ADMIN acceden únicamente a sus reservas. Se respeta el contrato de Inventario: despublicar un equipo no impide reservar sus unidades activas y retirarlas conserva las reservas anteriores. |
+| Integrar disponibilidad y reservas propias en la interfaz compartida, dentro del alcance de la Issue #5. | Mantiene la continuidad visual con el catálogo, conserva las fechas al acceder y confirma las operaciones antes de ejecutarlas. La entrega cubre disponibilidad, creación, consulta propia y cancelación; las funciones adicionales requieren otro alcance. |
+
+Pendiente: revisar y hacer merge del PR #13, correspondiente a la rama `feat/reservas-disponibilidad`. La rama todavía no se ha integrado en `main`; esta nota se retirará cuando se complete el merge.
+
 ## Confirmadas en la solicitud inicial
 
 | Decisión | Motivo o fuente |
