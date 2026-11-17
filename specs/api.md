@@ -1,6 +1,6 @@
 # Contratos API
 
-El navegador y la API comparten origen y usan la ruta base `/api`. La entrega de infraestructura publica la comprobación de salud. Cuentas y sesiones (RF-01) y catálogo e inventario (RF-02 y RF-03) están implementados. El contrato detallado del inventario, incluidas las garantías para Reservas, está en [el contrato de inventario](../docs/inventory-contract.md). Los contratos de disponibilidad y reservas siguen siendo propuestas para revisión.
+El navegador y la API comparten origen y usan la ruta base `/api`. La entrega de infraestructura publica la comprobación de salud. Cuentas y sesiones (RF-01) y catálogo e inventario (RF-02 y RF-03) están implementados. El contrato detallado del inventario, incluidas las garantías para Reservas, está en [el contrato de inventario](../docs/inventory-contract.md). Disponibilidad, reservas propias y cancelaciones (RF-04 a RF-06) están implementadas según la política confirmada en la Issue #5.
 
 ## Infraestructura
 
@@ -75,9 +75,9 @@ Las operaciones administrativas exigen una sesión con rol `ADMIN`, establecida 
 comprueba el rol antes de leer el cuerpo de la petición, de modo que una solicitud sin permisos nunca llega a modificar el
 inventario.
 
-## Contratos propuestos del MVP
+## Disponibilidad y reservas implementadas · Issue #5
 
-| Requisito | Método y ruta | Operación | Acceso y respuesta esperada |
+| Requisito | Método y ruta | Operación | Acceso y respuesta |
 | --- | --- | --- | --- |
 | RF-04 | `GET /api/availability?equipmentId={id}&start={instant}&end={instant}` | Consultar unidades disponibles del equipo para un intervalo. | Público. `200` con unidades disponibles o una lista vacía. |
 | RF-05 | `POST /api/reservations` | Crear una reserva enviando `unitId`, `start` y `end`. | Sesión requerida. `201` con la reserva confirmada o `409` por indisponibilidad. |
@@ -85,6 +85,22 @@ inventario.
 | RF-06 | `PATCH /api/reservations/{id}` | Solicitar cancelación con `status: "cancelled"`. | Titular. `200` con la reserva cancelada o `409` si su estado o la política impiden cancelar. |
 
 Los parámetros temporales usan RFC 3339 con desplazamiento explícito y las respuestas temporales se expresan en UTC.
+
+La disponibilidad responde `{"equipmentId":1,"start":"2035-04-10T15:00:00.000Z","end":"2035-04-10T16:00:00.000Z","units":[…]}`. Cada unidad conserva la forma del contrato de inventario (`id`, `inventoryCode`, `active`, `equipment`). Solo incluye unidades activas sin reservas confirmadas superpuestas. Un equipo inexistente devuelve 404; un equipo existente sin unidades libres devuelve una lista vacía. Un equipo despublicado sigue siendo consultable por identificador, según el contrato de inventario. La lectura no retiene unidades; la confirmación vuelve a comprobar su estado.
+
+Crear y cancelar responden `{"reservation":{"id":1,"start":"…Z","end":"…Z","status":"confirmed","createdAt":"…Z","cancelledAt":null,"unit":{…}}}`; al cancelar, `status` pasa a `cancelled` y `cancelledAt` contiene el instante UTC. El listado responde `{"reservations":[…]}`, ordenado por inicio descendente e identificador descendente, y conserva el historial. El titular se toma exclusivamente de la sesión. Tanto `ADMIN` como `USER` pueden reservar; ninguno accede a reservas de otras cuentas. Cancelar una reserva ajena o inexistente devuelve 404.
+
+Se aceptan instantes con precisión de hasta tres decimales, `Z` o desplazamiento conocido. Se rechazan fechas inexistentes, instantes sin zona, segundos intercalares y `-00:00`. El intervalo debe tener duración positiva; la disponibilidad puede consultarse en el pasado, pero crear requiere inicio futuro. La cancelación admite únicamente el cuerpo `{"status":"cancelled"}`, antes del inicio y sin anticipación mínima. No permite reactivar ni modificar el intervalo. Los plazos se revalidan con el reloj de PostgreSQL después de adquirir los bloqueos.
+
+| Estado | Código | Causa |
+| --- | --- | --- |
+| 400 | `invalid_interval` | Fecha inválida, sin zona, precisión excesiva o inicio no anterior al fin. |
+| 400 | `start_not_future` | El inicio de una nueva reserva ya llegó. |
+| 409 | `unit_unavailable` | Unidad inexistente o retirada del servicio. |
+| 409 | `reservation_overlap` | Otra reserva confirmada ocupa parte del intervalo. |
+| 409 | `reservation_not_cancellable` | Reserva ya cancelada o cuyo inicio ya llegó. |
+
+La exclusión `reservations_no_overlap` produce `23P01`, traducido a `reservation_overlap`. Un interbloqueo `40P01` revierte y reintenta la transacción completa hasta dos veces para que la restricción vuelva a decidir contra el estado confirmado. Ningún reintento ejecuta efectos fuera de la base.
 
 Todos los errores, incluidos los de las rutas ya implementadas, usan un objeto JSON con `error.code` y `error.message`. Se
 emplea `400` para entradas inválidas, `401` cuando falta una sesión válida, `403` para un rol insuficiente, `404` para

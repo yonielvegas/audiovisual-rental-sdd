@@ -6,6 +6,8 @@ import { createSessionActorResolver } from './access.js';
 import { createInventory } from './inventory.js';
 import { createInventoryStore } from './inventory-store.js';
 import { createLoginThrottle } from './throttle.js';
+import { createReservations } from './reservations.js';
+import { createReservationStore } from './reservation-store.js';
 
 const pool = new pg.Pool({
   connectionTimeoutMillis: 2000,
@@ -26,9 +28,11 @@ if (!secureCookie) {
   console.warn('SESSION_COOKIE_SECURE no está activa. Usa HTTPS y actívala fuera de desarrollo local.');
 }
 
+const inventory = createInventory({ store: createInventoryStore({ pool }) });
 const app = await createApp({
   checkDatabase: () => pool.query('SELECT 1'),
-  inventory: createInventory({ store: createInventoryStore({ pool }) }),
+  inventory,
+  reservations: createReservations({ store: createReservationStore({ pool }), inventory }),
   accounts,
   resolveActor: createSessionActorResolver({ accounts }),
   secureCookie,

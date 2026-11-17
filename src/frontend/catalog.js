@@ -6,8 +6,7 @@
  * consultas son públicas: no requieren sesión y el backend solo devuelve los
  * equipos publicados a quien no administra el inventario.
  *
- * Esta pantalla solo consulta. La disponibilidad por fechas y la reserva
- * corresponden a RF-04 y RF-05, que son otra entrega.
+ * La ficha enlaza a la consulta por fechas de RF-04 y RF-05.
  */
 
 const el = (selector) => document.querySelector(selector);
@@ -153,6 +152,7 @@ function openDetail(item, trigger) {
     ? 'Ninguna en servicio'
     : unitsLabel(item.activeUnits);
   el('#detail-id').textContent = String(item.id);
+  el('#detail-availability').href = `/disponibilidad?${new URLSearchParams({ equipmentId: item.id })}`;
 
   const media = el('#detail-media');
   media.replaceChildren();

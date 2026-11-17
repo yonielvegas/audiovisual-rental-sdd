@@ -1,5 +1,34 @@
 # Estrategia y evidencia de pruebas
 
+## Issue #5 · Evidencia del 17 de noviembre de 2026
+
+Ejecutada por Codex en la rama `feat/reservas-disponibilidad`, desde `main` (`347bdba`), con una composición aislada `codex-reservas-issue5`: Node.js 24.22.3 y PostgreSQL 17.12. Las comprobaciones locales con sockets no están permitidas por el sandbox; la evidencia HTTP se obtuvo dentro de Docker con las versiones del proyecto.
+
+| Criterio | Prueba ejecutada | Resultado |
+| --- | --- | --- |
+| Validaciones, autenticación y regresión | `npm test` en el contenedor de Node 24. | 75 pruebas correctas, ninguna omitida. Incluye fechas reales, zonas equivalentes, precisión, intervalos vacíos, inicio futuro y frontera exacta de cancelación, además de las 52 pruebas anteriores. |
+| AC-04 y AC-05 | `npm run test:integration` con `RESERVATION_TEST_DATABASE=1` y las migraciones vigentes. | Disponibilidad pública descuenta confirmadas y retiradas; un intervalo contiguo queda libre. Doble reserva secuencial: 201 y 409, una fila confirmada persistida. Unidades distintas admiten el mismo horario. |
+| AC-06 | Ocho pares de peticiones desde dos servidores HTTP con pools independientes; una barrera espera a que ambas transacciones hayan tomado el bloqueo compartido antes de insertar. | Cada par devuelve exactamente 201 y 409. Consulta SQL posterior a cada par: una reserva confirmada superpuesta. La consulta final no encuentra parejas confirmadas solapadas. |
+| AC-06 en la propia base | Dos clientes SQL intentan insertar sobre la misma unidad; el primero conserva su transacción abierta y se comprueba que el segundo espera un bloqueo real. | Después del primer COMMIT, el segundo recibe `23P01` de `reservations_no_overlap`. Solo queda una reserva confirmada. |
+| AC-07 | Listados de dos titulares, cancelación ajena y dos cancelaciones propias concurrentes. | Listados aislados; ajena 404; propias 200 y 409; estado `cancelled` y fecha persistidos. El horario vuelve a disponibilidad y otro titular puede reservarlo. |
+| Contrato de Inventario #4 | Desactivación con transacción abierta frente a creación; y reserva sin confirmar frente a desactivación. | Se observan las esperas reales en `pg_stat_activity`. Si la desactivación gana, la reserva devuelve 409 sin insertar. Si la reserva gana, retirar conserva el historial; el titular puede cancelarla. Se respeta la reserva de una unidad activa de equipo despublicado. |
+| Plazos después de esperar | Retener la fila de la reserva o de la unidad hasta que pase el inicio. | Cancelar devuelve 409 sin cambiar el estado; crear devuelve `start_not_future` sin guardar la solicitud. Se usa el reloj de la base después de adquirir el bloqueo. |
+| Suite real completa | `npm run test:integration`. | 12 comprobaciones correctas (11 escenarios y su suite), ninguna omitida. Las fixtures se eliminan al terminar sin tocar la semilla. |
+| Regresión contra Compose | `npm run test:smoke`. | Salud 200, 14 equipos completos, 14 ilustraciones, cuentas, roles, unicidad y cierre de sesión correctos. |
+| Migraciones | Arranque desde volumen nuevo y `docker compose run --rm migrate` posterior. | Seis migraciones registradas una vez; la repetición indica que no hay pendientes y que el administrador ya estaba al día. |
+| Navegador con Playwright | Catálogo, disponibilidad, creación sin sesión, registro de cuenta ficticia, confirmación, reservas propias y cancelación desde vista móvil. | El acceso conserva equipo y horario; crear muestra la confirmación y la unidad propia. Cancelar conserva el historial, devuelve el foco a «Actualizar reservas» y la unidad vuelve a aparecer disponible al consultar. Se inspeccionaron capturas de escritorio y móvil sin desbordamiento horizontal. |
+
+La concurrencia real detectó inicialmente un interbloqueo GiST (`40P01`) con respuesta 500. Se corrigió revirtiendo y reintentando la transacción completa hasta dos veces; la suite confirma después una respuesta 409 y un único registro confirmado. El test de SQL directo conserva la garantía de la exclusión sin depender de código de aplicación.
+
+Para reproducir sobre una composición **de pruebas** iniciada:
+
+```sh
+docker compose run --rm --no-deps -v "$PWD/tests:/app/tests:ro" app npm test
+docker compose run --rm --no-deps -v "$PWD/tests:/app/tests:ro" -e RESERVATION_TEST_DATABASE=1 app npm run test:integration
+```
+
+En PowerShell usa `-v "$($PWD.Path)/tests:/app/tests:ro"`. Para el entorno aislado de esta evidencia se añadió `-p codex-reservas-issue5` a cada comando y se configuró el puerto local 18085. CI ejecuta la integración real antes de detener PostgreSQL. La revisión humana y una ejecución por otro integrante se registrarán cuando ocurran.
+
 Los escenarios se vinculan con los [criterios de aceptación](../specs/acceptance-criteria.md) y los [resultados esperados](../specs/outcomes.md). La matriz describe pruebas planificadas. El equipo incorporará a cada Pull Request los resultados de las pruebas que efectivamente ejecute.
 
 ## Infraestructura de la Issue 3

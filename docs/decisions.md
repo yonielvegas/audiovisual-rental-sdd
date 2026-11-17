@@ -1,5 +1,13 @@
 # Registro de decisiones
 
+## Reservas y disponibilidad · 17 de noviembre de 2026
+
+La persona solicitante confirmó en esta conversación: crear solo para un inicio futuro y permitir que el titular cancele estrictamente antes del inicio, sin exigir 24 horas ni otra anticipación mínima. Cancelar conserva el registro y libera el intervalo para otra persona.
+
+Decisiones técnicas de la Issue #5: intervalos `[inicio, fin)`, RFC 3339 con zona conocida y hasta milisegundos, respuestas UTC, exclusión GiST parcial para reservas confirmadas, transacción con `lockActiveUnit` y reintento completo hasta dos veces ante `40P01`. Las pruebas reales detectaron un interbloqueo GiST que inicialmente devolvía 500; el reintento permite que la exclusión produzca el conflicto 409. Los plazos se comprueban con `clock_timestamp()` después de esperar los bloqueos.
+
+Se conserva el contrato vigente: una unidad activa de un equipo despublicado sigue siendo reservable por identificador; retirar la unidad no borra ni cancela sus reservas. La interfaz señala la retirada y permite al titular cancelar según la misma política. No se añaden pagos, notificaciones, reasignación ni administración de reservas ajenas.
+
 ## Confirmadas en la solicitud inicial
 
 | Decisión | Motivo o fuente |

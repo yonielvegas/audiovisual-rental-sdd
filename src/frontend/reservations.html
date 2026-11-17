@@ -1,0 +1,23 @@
+<section class="catalog shell reservation-flow" aria-labelledby="reservations-title">
+  <header class="panel glass catalog-intro">
+    <p class="card-tag">Tus alquileres</p>
+    <h1 id="reservations-title">Mis reservas</h1>
+    <p>Consulta tus horarios y el estado de cada reserva. Puedes cancelar antes del inicio, sin exigir 24 horas de anticipación.</p>
+    <a class="button button-primary" href="/disponibilidad">Reservar un equipo</a>
+  </header>
+  <div class="field-actions"><button class="button button-secondary" id="reload-reservations" type="button">Actualizar reservas</button></div>
+  <output class="feedback" id="reservation-status" aria-live="polite">Cargando tus reservas.</output>
+  <ul class="record-list" id="own-reservations" aria-label="Tus reservas"></ul>
+  <noscript><p>Activa JavaScript para consultar y cancelar tus reservas.</p></noscript>
+</section>
+<dialog class="modal" id="reservation-confirm" aria-labelledby="confirmation-title">
+  <form method="dialog">
+    <div class="modal-head"><h2 id="confirmation-title">Cancelar reserva</h2></div>
+    <div class="modal-body"><p id="confirmation-description"></p></div>
+    <div class="modal-foot">
+      <button class="button button-secondary" value="dismiss" autofocus>Conservar reserva</button>
+      <button class="button button-primary" value="confirm">Cancelar reserva</button>
+    </div>
+  </form>
+</dialog>
+<script type="module" src="/reservations.js"></script>

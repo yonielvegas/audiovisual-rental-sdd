@@ -485,6 +485,14 @@ button { cursor: pointer; }
 .record-title { font-weight: 720; }
 .record-meta { color: var(--text-muted); font-size: 0.84rem; }
 .record-actions, .inline-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.reservation-flow .field { min-width: 0; }
+.reservation-flow input, .reservation-flow select { min-width: 0; max-width: 100%; width: 100%; }
+.reservation-flow .record > div { min-width: 0; overflow-wrap: anywhere; }
+.reservation-flow .record button { white-space: normal; }
+@media (max-width: 40rem) {
+  .reservation-flow .field-row { flex-direction: column; align-items: stretch; }
+  .reservation-flow .field-row .field { flex: auto; }
+}
 .inline-form input { min-height: 2.4rem; width: 9.5rem; }
 
 .footer-link { font-size: 0.8rem; font-weight: 680; }

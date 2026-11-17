@@ -1,0 +1,36 @@
+<section class="catalog shell reservation-flow" aria-labelledby="availability-title">
+  <header class="panel glass catalog-intro">
+    <p class="card-tag">Prepara tu producción</p>
+    <h1 id="availability-title">Consulta la disponibilidad</h1>
+    <p>Elige un equipo y el horario de alquiler. Verás las unidades en servicio que están libres durante todo el intervalo.</p>
+  </header>
+  <form id="availability-form" class="panel glass form-panel">
+    <p class="field">
+      <label for="reservation-equipment">Equipo</label>
+      <select id="reservation-equipment" name="equipmentId" required disabled>
+        <option value="">Cargando equipos…</option>
+      </select>
+    </p>
+    <div class="field-row">
+      <p class="field"><label for="reservation-start">Inicio del alquiler</label><input id="reservation-start" name="start" type="datetime-local" required step="60"></p>
+      <p class="field"><label for="reservation-end">Fin del alquiler</label><input id="reservation-end" name="end" type="datetime-local" required step="60"></p>
+    </div>
+    <p id="reservation-zone" class="panel-hint"></p>
+    <div class="field-actions"><button class="button button-primary" id="availability-submit" type="submit" disabled>Consultar disponibilidad</button></div>
+  </form>
+  <output class="feedback" id="reservation-status" aria-live="polite">Cargando equipos.</output>
+  <ul class="record-list" id="available-units" aria-label="Unidades disponibles"></ul>
+  <p class="panel-hint">Para reservar necesitas iniciar sesión. Puedes cancelar una reserva propia antes de su inicio, sin anticipación mínima. Al terminar un alquiler, esa unidad puede iniciar otro en el mismo instante.</p>
+  <noscript><p>Activa JavaScript para consultar disponibilidad y reservar.</p></noscript>
+</section>
+<dialog class="modal" id="reservation-confirm" aria-labelledby="confirmation-title">
+  <form method="dialog">
+    <div class="modal-head"><h2 id="confirmation-title">Confirmar reserva</h2></div>
+    <div class="modal-body"><p id="confirmation-description"></p></div>
+    <div class="modal-foot">
+      <button class="button button-secondary" value="dismiss" autofocus>Volver</button>
+      <button class="button button-primary" value="confirm">Confirmar reserva</button>
+    </div>
+  </form>
+</dialog>
+<script type="module" src="/reservations.js"></script>

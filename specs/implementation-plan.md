@@ -22,6 +22,14 @@ RF-01 y AC-01 están implementados: registro público, inicio de sesión único 
 3. Servir la página estática y la ruta de salud. Comprobar estados de base de datos disponible y no disponible.
 4. Ejecutar la suite local, iniciar la composición, inspeccionar las migraciones y el estado de servicios, cargar la página en el navegador y comprobar el arranque desde un clon limpio. Ejecutar los mismos controles automáticos en GitHub Actions cuando el remoto esté disponible.
 
+## Entrega de la Issue #5 · 17 de noviembre de 2026
+
+1. Reutilizar el contrato vigente de inventario y las sesiones de cualquier rol.
+2. Añadir reservas por unidad con intervalos `[inicio, fin)`, instantes RFC 3339 con zona explícita y precisión máxima de milisegundos; guardar y responder en UTC.
+3. Proteger el solapamiento confirmado con una exclusión GiST en PostgreSQL y comprobar la unidad activa dentro de la transacción con `lockActiveUnit`.
+4. Política confirmada por la persona solicitante: inicio futuro; cancelación por el titular antes del inicio, sin anticipación mínima. Conservar historial y liberar el intervalo al cancelar.
+5. Integrar consulta pública, creación autenticada y reservas propias en el layout existente. Verificar permisos, validaciones, doble reserva, concurrencia y estado final real en PostgreSQL (AC-04 a AC-07).
+
 ## Puntos de revisión
 
 - Antes de lógica funcional, acordar las decisiones abiertas de [reglas](business-rules.md), [datos](data-model.md) y [API](api.md). Registrar fecha, versión y participantes reales en [decisiones](../docs/decisions.md).

@@ -4,7 +4,7 @@ Proyecto #2 de Tópicos Especiales II del profesor Regis Rivera. La aplicación 
 
 ## Estado y alcance
 
-La base incluye el frontend, el backend, PostgreSQL, las migraciones y la comprobación de salud. Están implementados el registro y el inicio de sesión con roles `ADMIN` y `USER` (RF-01), el catálogo público de equipos y categorías (RF-02) y la administración de inventario por unidad física (RF-03). Quedan pendientes la disponibilidad, las reservas propias, las cancelaciones y la prevención de doble reserva. La inclusión de pagos queda pendiente de aprobación.
+La base incluye el frontend, el backend, PostgreSQL, las migraciones y la comprobación de salud. Están implementados el registro y el inicio de sesión con roles `ADMIN` y `USER` (RF-01), el catálogo público (RF-02), el inventario por unidad física (RF-03), la disponibilidad por fechas (RF-04), la reserva con prevención de solapamientos concurrentes (RF-05) y las reservas propias y su cancelación (RF-06). Los pagos quedan fuera de esta entrega.
 
 Consulta [ODD](specs/outcomes.md), [requisitos](specs/requirements.md), [arquitectura](specs/architecture.md), [criterios de aceptación](specs/acceptance-criteria.md), [plan de implementación](specs/implementation-plan.md) y [el contrato de inventario que consume Reservas](docs/inventory-contract.md).
 
@@ -38,7 +38,7 @@ Para rehacer la cuenta administrativa sin volver a migrar, ejecuta `npm run boot
 
 ## Catálogo e inventario
 
-- [El catálogo público](http://localhost:8080/catalogo) presenta los equipos publicados en tarjetas con imagen, marca, modelo, descripción, tarifa de alquiler por día y unidades en servicio. Incluye buscador por nombre, marca o modelo, filtro por categoría, ordenamiento y una ficha con el detalle completo. No requiere cuenta. El recuento de unidades refleja el inventario y todavía no descuenta reservas por fechas, que corresponden a RF-04.
+- [El catálogo público](http://localhost:8080/catalogo) presenta los equipos publicados en tarjetas con imagen, marca, modelo, descripción, tarifa de alquiler por día y unidades en servicio. Incluye buscador por nombre, marca o modelo, filtro por categoría, ordenamiento y una ficha con el detalle completo. No requiere cuenta. El recuento de unidades refleja el inventario; la ficha enlaza a la disponibilidad por fechas de RF-04.
 - [La administración del inventario](http://localhost:8080/inventario) registra categorías, equipos y unidades físicas. Requiere una sesión con rol `ADMIN`.
 
 Las operaciones administrativas de la API usan la cookie de sesión que devuelve el inicio de sesión:
@@ -52,6 +52,22 @@ curl -b sesion.txt -X POST http://localhost:8080/api/units   -H "Content-Type: a
 ```
 
 La migración `005-catalog-seed.sql` deja el catálogo cargado con catorce equipos audiovisuales reales, sus tarifas, sus ilustraciones y 34 unidades físicas etiquetadas, de modo que `/catalogo` y `/inventario` tienen datos desde el primer arranque. Cada unidad física tiene un identificador estable y un código único en todo el inventario. Las rutas, las respuestas y las garantías que la entrega de reservas puede dar por ciertas están en [el contrato de inventario](docs/inventory-contract.md) y en [los contratos de API](specs/api.md).
+
+## Reservas y disponibilidad · Issue #5
+
+Desde la ficha del catálogo, abre «Consultar disponibilidad» o entra a `/disponibilidad`. Elige equipo, inicio y fin; las horas se muestran en la zona horaria del navegador. La consulta es pública. Para confirmar una unidad libre necesitas una sesión de cualquier rol. `/reservas` muestra únicamente las reservas de tu cuenta, incluidas las canceladas.
+
+Una reserva debe empezar en el futuro y terminar después del inicio. Su titular puede cancelarla hasta antes del inicio, sin exigir 24 horas de anticipación. Se conserva el registro cancelado y se libera el intervalo al confirmar la transacción. Los horarios son semiabiertos: una unidad puede empezar otro alquiler exactamente cuando termina el anterior.
+
+La consulta es orientativa: al confirmar se comprueba de nuevo la unidad activa dentro de la transacción. La migración `006-reservations.sql` añade `btree_gist` y una exclusión parcial de PostgreSQL para impedir dos reservas confirmadas superpuestas de una misma unidad, incluso entre instancias del servidor. Un conflicto devuelve HTTP 409 y permite consultar otro horario. Retirar una unidad conserva sus reservas y excluye la unidad de nuevas consultas; no cancela ni reasigna automáticamente reservas anteriores.
+
+Pruebas reales de integración y concurrencia (sobre una composición **de pruebas** ya iniciada):
+
+```sh
+docker compose run --rm --no-deps -v "$PWD/tests:/app/tests:ro" -e RESERVATION_TEST_DATABASE=1 app npm run test:integration
+```
+
+En PowerShell, el argumento del volumen es `-v "$($PWD.Path)/tests:/app/tests:ro"`. La suite crea y limpia sus propias cuentas, categorías, equipos, unidades y reservas; requiere una base de pruebas migrada. Comprueba solicitudes simultáneas desde dos servidores HTTP, el conflicto SQL directo, el estado final persistido, cancelaciones y coordinación con Inventario. CI ejecuta esta suite además de `npm test` y la prueba de humo.
 
 ## Funcionamiento de la composición
 
@@ -80,6 +96,6 @@ Yoel Samaniego inició el repositorio y preparó la documentación inicial con a
 | Yoel Samaniego | Architecture / Development Lead | [#1 · ODD](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/1), [#2 · SDD](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/2) y [#3 · Infraestructura](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/3) |
 | Yini Pan | QA / DevOps Lead | [#5 · Reservas y disponibilidad](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/5) (previsto) |
 
-Una vez integrada la infraestructura, Eric y Yini deben clonar el repositorio con sus cuentas, comprobar el arranque y trabajar en una rama por Issue desde `main`. La entrega de Yini parte de [el contrato de inventario](docs/inventory-contract.md) y debe incluir la prueba concurrente de doble reserva. El contrato de sesión y la autorización por rol ya están implementados y documentados en [los contratos de API](specs/api.md). El PR de cada entrega debe enlazar la Issue, los criterios y las pruebas ejecutadas.
+Una vez integrada la infraestructura, Eric y Yini deben clonar el repositorio con sus cuentas, comprobar el arranque y trabajar en una rama por Issue desde `main`. La entrega de Yini parte de [el contrato de inventario](docs/inventory-contract.md) y incluye la prueba concurrente de doble reserva en `tests/reservations.postgres.test.js`. El contrato de sesión y la autorización por rol ya están implementados y documentados en [los contratos de API](specs/api.md). El PR de cada entrega debe enlazar la Issue, los criterios y las pruebas ejecutadas.
 
 El [registro de roles y ciclos](docs/roles-and-cycles.md), las [decisiones](docs/decisions.md) y el [registro de IA](docs/ai-log.md) documentan la preparación y la revisión del equipo.

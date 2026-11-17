@@ -24,11 +24,11 @@ El paso `migrate` aplica las migraciones y a continuación ejecuta `bootstrap-ad
 
 Las credenciales y el puerto se configuran por variables de entorno. `.env.example` contiene valores de desarrollo ficticios. `.env` es local. La API devuelve un estado estable y el servidor puede registrar errores sin exponer credenciales al cliente.
 
-## Evolución funcional propuesta
+## Módulos funcionales
 
 - Catálogo e inventario ya usan rutas y consultas separadas de la infraestructura común: una tabla de rutas declarativa (`src/backend/router.js`), la validación y las operaciones del dominio (`src/backend/inventory.js`) y el acceso a PostgreSQL (`src/backend/inventory-store.js`). Cada unidad tiene un identificador estable y un código único.
-- La disponibilidad representará una lectura en un instante; la confirmación de la reserva se decidirá al escribir en la base de datos.
-- Una restricción de exclusión GiST sobre la unidad y un rango `tstzrange` evitará solapamientos activos incluso con pedidos concurrentes. Se propone `btree_gist` para combinar el identificador de unidad con el rango.
+- La disponibilidad es una lectura orientativa; la confirmación se decide al escribir en PostgreSQL. `reservations.js` valida las reglas, `reservation-routes.js` adapta HTTP y `reservation-store.js` controla transacciones y persistencia.
+- La migración `006-reservations.sql` usa `btree_gist` y una exclusión GiST parcial sobre unidad y `tstzrange` para impedir solapamientos confirmados. La transacción comprueba la unidad con `lockActiveUnit`, reintenta hasta dos veces ante interbloqueo y traduce el conflicto de exclusión a HTTP 409.
 - El control de acceso se resuelve en un solo punto: cada ruta declara el rol que exige y el backend lo verifica antes de leer el cuerpo de la petición. `src/backend/access.js` traduce la cookie de sesión en un actor `{ id, username, role }`; las cuentas y las sesiones viven en `src/backend/accounts.js` y `src/backend/account-store.js`, y las contraseñas se procesan solo en `src/backend/passwords.js`.
 
 Referencias técnicas: [orden de inicio de Docker Compose](https://docs.docker.com/compose/how-tos/startup-order/), [pool de node-postgres](https://node-postgres.com/apis/pool) y [restricciones de rangos de PostgreSQL](https://www.postgresql.org/docs/current/rangetypes.html#RANGETYPES-CONSTRAINT).

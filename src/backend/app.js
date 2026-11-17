@@ -5,6 +5,7 @@ import { anonymousActorResolver, requireRole } from './access.js';
 import { authRoutes } from './auth-routes.js';
 import { sendError, sendJson } from './http.js';
 import { inventoryRoutes } from './inventory-routes.js';
+import { reservationRoutes } from './reservation-routes.js';
 import { createRoutes, matchRoute, routeNotFound } from './router.js';
 
 const frontend = new URL('../frontend/', import.meta.url);
@@ -14,6 +15,8 @@ const frontend = new URL('../frontend/', import.meta.url);
 const pages = [
   { path: '/', file: 'index.html', nav: 'home', title: 'Reservas de equipos audiovisuales' },
   { path: '/catalogo', file: 'catalog.html', nav: 'catalog', title: 'Catálogo de equipos | Alquiler audiovisual' },
+  { path: '/disponibilidad', file: 'availability.html', nav: 'availability', title: 'Disponibilidad | Alquiler audiovisual' },
+  { path: '/reservas', file: 'reservations.html', nav: 'reservations', title: 'Mis reservas | Alquiler audiovisual', session: true },
   { path: '/acceso', file: 'access.html', nav: 'access', title: 'Acceder | Alquiler audiovisual' },
   { path: '/inventario', file: 'inventory.html', nav: 'inventory', title: 'Inventario | Alquiler audiovisual', role: roles.admin },
 ];
@@ -23,6 +26,7 @@ const assets = [
   ['/styles.css', 'styles.css', 'text/css; charset=utf-8'],
   ['/app.js', 'app.js', 'text/javascript; charset=utf-8'],
   ['/catalog.js', 'catalog.js', 'text/javascript; charset=utf-8'],
+  ['/reservations.js', 'reservations.js', 'text/javascript; charset=utf-8'],
   ['/access.js', 'access.js', 'text/javascript; charset=utf-8'],
   ['/inventory.js', 'inventory.js', 'text/javascript; charset=utf-8'],
   ['/hero.webp', 'hero.webp', 'image/webp'],
@@ -51,7 +55,7 @@ function serve(request, response, status, document) {
     'Content-Type': document.type ?? 'text/html; charset=utf-8',
     'Content-Length': document.content.length,
     'X-Content-Type-Options': 'nosniff',
-    ...(document.role ? { 'Cache-Control': 'no-store' } : {}),
+    ...(document.role || document.session ? { 'Cache-Control': 'no-store' } : {}),
   });
   response.end(request.method === 'HEAD' ? undefined : document.content);
 }
@@ -72,7 +76,7 @@ async function callApi({ routes, resolveActor, request, response, url }) {
 // iniciado sesión va al acceso y vuelve después a esta página. Devuelve `true`
 // cuando ya respondió y la petición no debe seguir.
 async function guarded({ document, resolveActor, request, response, url, forbiddenPage }) {
-  if (!document.role) return false;
+  if (!document.role && !document.session) return false;
 
   const actor = await resolveActor(request);
   if (!actor) {
@@ -81,7 +85,7 @@ async function guarded({ document, resolveActor, request, response, url, forbidd
     response.end();
     return true;
   }
-  if (actor.role !== document.role) {
+  if (document.role && actor.role !== document.role) {
     serve(request, response, 403, { content: forbiddenPage, role: document.role });
     return true;
   }
@@ -91,6 +95,7 @@ async function guarded({ document, resolveActor, request, response, url, forbidd
 export async function createApp({
   checkDatabase,
   inventory,
+  reservations,
   accounts,
   resolveActor = anonymousActorResolver,
   secureCookie = false,
@@ -107,7 +112,7 @@ export async function createApp({
 
   const pageRoutes = await Promise.all(pages.map(async (page) => [
     page.path,
-    { type: 'text/html; charset=utf-8', content: await render(page.file, page.title, page.nav), role: page.role },
+    { type: 'text/html; charset=utf-8', content: await render(page.file, page.title, page.nav), role: page.role, session: page.session },
   ]));
   // Las ilustraciones del catálogo se enumeran al arrancar y se sirven desde esa
   // lista, nunca desde la ruta que trae la solicitud: así ninguna petición puede
@@ -126,6 +131,7 @@ export async function createApp({
     healthRoute(checkDatabase),
     ...(accounts ? authRoutes(accounts, { secureCookie }) : []),
     ...(inventory ? inventoryRoutes(inventory) : []),
+    ...(reservations ? reservationRoutes(reservations) : []),
   ]);
 
   return createServer(async (request, response) => {

@@ -15,6 +15,11 @@ export function createSessionActorResolver({ accounts }) {
 
 export const anonymousActorResolver = () => null;
 
+export function requireSession(actor) {
+  if (!actor) throw unauthenticated('Esta operación requiere haber iniciado sesión.');
+  return actor;
+}
+
 // RN-07 y RT-02. La falta de sesión y el rol insuficiente se distinguen para
 // que el cliente sepa si debe identificarse o si su cuenta no basta.
 export function requireRole(actor, role) {
