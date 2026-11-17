@@ -1,6 +1,6 @@
 # Roles y ciclos
 
-La rotación distribuye el trabajo de producto, desarrollo y calidad entre los tres integrantes. Un ciclo puede abarcar varias Issues. La responsabilidad de una Issue se registra de forma independiente al rol del ciclo.
+El plan de rotación distribuye el trabajo de producto, desarrollo y calidad entre los tres integrantes. Un ciclo puede abarcar varias Issues. La responsabilidad de una Issue se registra de forma independiente al rol del ciclo.
 
 | Ciclo | Product / Spec Lead | Architecture / Development Lead | QA / DevOps Lead |
 | --- | --- | --- | --- |
@@ -10,4 +10,12 @@ La rotación distribuye el trabajo de producto, desarrollo y calidad entre los t
 
 Product / Spec conserva la relación entre necesidades, resultados y criterios de aceptación. Architecture / Development mantiene la arquitectura y coordina la implementación. QA / DevOps coordina las pruebas, comprueba la ejecución y reúne evidencias.
 
-Yoel Samaniego inició el repositorio y preparó la documentación inicial con apoyo de IA. Está a cargo de ODD, SDD e infraestructura. Eric tiene previsto desarrollar catálogo e inventario. Yini tiene previsto desarrollar reservas y disponibilidad. Cada integrante dejará evidencia de sus aportes desde su propia cuenta de GitHub mediante cambios, revisiones, resultados de pruebas o demostraciones que haya realizado. Al cerrar un ciclo, el equipo registrará qué entregó, quién lo validó y qué se traslada al ciclo siguiente.
+## Aportes verificables
+
+| Integrante | Entrega | Evidencia |
+| --- | --- | --- |
+| Yoel Samaniego (`yonielvegas`) | Inicialización, ODD, SDD, infraestructura y landing. | [PR #7](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/7), [#8](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/8), [#9](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/9) y [#11](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/11). |
+| Yini Pan (`yigpan29`) | Catálogo, inventario, autenticación y contrato para Reservas. Integración del PR de Catálogo. | [PR #12](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/12) y [merge 347bdba](https://github.com/yonielvegas/audiovisual-rental-sdd/commit/347bdba). |
+| Eric Ruiz (`DREEP1404`) | Disponibilidad, reservas, calendario y pruebas concurrentes. Integración del PR de Reservas. | [PR #13](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/13) y [merge f9c1951](https://github.com/yonielvegas/audiovisual-rental-sdd/commit/f9c1951). |
+
+GitHub registra la autoría e integración. Los PRs #12 y #13 carecían de revisiones formales registradas al consolidar esta entrega. Para acreditar la rotación efectivamente realizada, el equipo debe registrar el rol ejercido, la fecha de cierre del ciclo y la evidencia de revisión o validación de cada integrante.

@@ -12,6 +12,8 @@ Fuente primaria: **DSaIA-Proyecto2.pdf**, páginas 1–3, profesor Regis Rivera,
 6. Incorporar un cambio inesperado de requisito a mitad del desarrollo y conservar evidencia desde la solicitud hasta el resultado. Actualizar especificación, aceptación y plan antes del código, luego adaptar las pruebas y demostrar el comportamiento. [Plantilla de cambio](../.github/ISSUE_TEMPLATE/cambio-de-requisito.md)
 7. Prepararse como equipo para la presentación. Cualquier integrante puede ser elegido al azar y el profesor puede pedir cambios durante la exposición. Entregar la evidencia anterior y los materiales que se usen para presentar. Las diapositivas son opcionales y una persona puede realizar la entrega por el equipo.
 
+Consulta el [guion de entrega](delivery.md) para localizar la evidencia de cada indicación y preparar la demostración.
+
 ## Cómo lo aplicamos en este repositorio
 
 - Desde `main`, abrir una rama por entrega. Enlazar la Issue, el requisito y el criterio en el PR. Publicar cambios pequeños cuando una Issue tenga varios entregables.

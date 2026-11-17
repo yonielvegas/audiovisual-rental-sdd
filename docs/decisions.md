@@ -14,7 +14,7 @@ Decisiones adoptadas para implementar reservas y disponibilidad en la Issue #5, 
 | Obtener el titular desde la sesión y conservar las garantías del inventario existente. | La sesión identifica al titular: tanto USER como ADMIN acceden únicamente a sus reservas. Se respeta el contrato de Inventario: despublicar un equipo no impide reservar sus unidades activas y retirarlas conserva las reservas anteriores. |
 | Integrar disponibilidad y reservas propias en la interfaz compartida, dentro del alcance de la Issue #5. | Mantiene la continuidad visual con el catálogo, conserva las fechas al acceder y confirma las operaciones antes de ejecutarlas. La entrega cubre disponibilidad, creación, consulta propia y cancelación; las funciones adicionales requieren otro alcance. |
 
-Pendiente: revisar y hacer merge del PR #13, correspondiente a la rama `feat/reservas-disponibilidad`. La rama todavía no se ha integrado en `main`; esta nota se retirará cuando se complete el merge.
+El [PR #13](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/13) se integró en main en f9c1951. La modificación de calendario se reconstruye en [el registro del cambio](requirement-change.md).
 
 ## Confirmadas en la solicitud inicial
 
@@ -26,12 +26,9 @@ Pendiente: revisar y hacer merge del PR #13, correspondiente a la rama `feat/res
 | Mantener trazabilidad con Issues, ramas, commits, Pull Requests, pruebas y registro del uso de IA. | Evidencias exigidas por el proceso académico. |
 | Posponer devoluciones detalladas, mantenimiento avanzado, multas, logística, facturación y reportes avanzados. | Alcance acordado para el MVP académico. |
 
-## Pendientes de definición o aprobación
+## Decisiones fuera del MVP
 
-- La inclusión de pagos requerirá aprobación. La infraestructura inicial queda fuera de esa decisión.
-- Las hipótesis de problema y los valores objetivo se formularán durante ODD, con su método de validación.
-- El diseño técnico, las reglas específicas y los contratos se documentarán durante SDD y registrarán las decisiones que requieran aprobación.
-- El cambio inesperado de requisito se registrará cuando se reciba durante el desarrollo.
+La inclusión de pagos requerirá aprobación. Las hipótesis y metas de ODD quedan en [resultados](../specs/outcomes.md), y su validación se registra en [la entrega](delivery.md).
 
 ## Decisión técnica de infraestructura
 
@@ -40,8 +37,7 @@ Pendiente: revisar y hacer merge del PR #13, correspondiente a la rama `feat/res
 
 ## Revisión del SDD funcional
 
-- Pendientes de acuerdo: intervalo semiabierto, precisión y duración, elegibilidad de reservas con inicio pasado, política de cancelación y desactivación de unidades con reservas, responsable y mecanismo de autenticación, y alta de administradores.
-- El equipo registrará aquí la versión, fecha y participantes reales cuando se apruebe el contrato funcional. El punto de control se aplica antes de programar lógica de negocio. La Issue 3 utiliza el contrato técnico de inicio y salud y su aceptación se verifica por separado.
+Los [contratos](../specs/api.md) especifican cuentas, autenticación y permisos. Las [reglas](../specs/business-rules.md) recogen el intervalo semiabierto, precisión, inicio futuro, cancelación y coordinación con unidades retiradas. Las decisiones técnicas quedaron integradas mediante los PRs #12 y #13.
 
 ## Catálogo e inventario de la Issue #4
 
@@ -60,7 +56,7 @@ Decisiones técnicas adoptadas al implementar RF-02 y RF-03. Quedan abiertas a r
 | El rol administrativo se comprueba en una única frontera, `src/backend/access.js`, que las rutas consultan declarando el rol que exigen. | Mantiene el control de acceso en un solo lugar. Al implementar RF-01 bastó sustituir la resolución del actor sin tocar ninguna ruta del inventario. |
 | La administración se expone en la página `/inventario`, protegida por rol en el servidor. | Permite demostrar AC-03 y O-03 en el navegador. La página no se sirve siquiera a quien no tiene rol `ADMIN`. |
 
-Pendiente de acuerdo del equipo: qué ocurre con las reservas ya confirmadas de una unidad que se desactiva y si un equipo sin unidades activas debe salir del catálogo público.
+La política vigente conserva las reservas ya confirmadas de una unidad retirada. La marca published determina si el equipo aparece en el catálogo, incluso con cero unidades activas.
 
 ## Catálogo público y datos de presentación
 

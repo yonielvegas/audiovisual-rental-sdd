@@ -31,7 +31,7 @@ docker compose run --rm --no-deps -v "$PWD/tests:/app/tests:ro" -e RESERVATION_T
 
 En PowerShell usa `-v "$($PWD.Path)/tests:/app/tests:ro"`. Para el entorno aislado de esta evidencia se añadió `-p codex-reservas-issue5` a cada comando y se configuró el puerto local 18085. CI ejecuta la integración real antes de detener PostgreSQL. La revisión humana y una ejecución por otro integrante se registrarán cuando ocurran.
 
-Los escenarios se vinculan con los [criterios de aceptación](../specs/acceptance-criteria.md) y los [resultados esperados](../specs/outcomes.md). La matriz describe pruebas planificadas. El equipo incorporará a cada Pull Request los resultados de las pruebas que efectivamente ejecute.
+Los escenarios se vinculan con los [criterios de aceptación](../specs/acceptance-criteria.md) y los [resultados esperados](../specs/outcomes.md). La matriz resume la cobertura y enlaza las evidencias verificadas. El equipo incorporará a cada Pull Request los resultados de las pruebas que efectivamente ejecute.
 
 ## Infraestructura de la Issue 3
 
@@ -49,16 +49,20 @@ Los escenarios se vinculan con los [criterios de aceptación](../specs/acceptanc
 
 ## Matriz de trazabilidad
 
-| Criterio | Resultado asociado | Prueba o escenario | Evidencia a adjuntar | Estado inicial |
-| --- | --- | --- | --- | --- |
-| AC-01 | O-01, O-04 | Registro y sesión con entradas válidas e inválidas. | `tests/auth.test.js` y la sección de cuentas de `tests/smoke.mjs` contra PostgreSQL. | Cubierto por pruebas automatizadas. Demostración con el equipo pendiente. |
-| AC-02, AC-03 | O-01, O-03 | Catálogo público, categorías, códigos únicos y permisos. | `tests/inventory.test.js` y la sección de inventario de `tests/smoke.mjs` contra PostgreSQL. Recorrido de los criterios de aceptación del 16 de noviembre de 2026 sobre la base sembrada. | Cubierto por pruebas automatizadas y verificado contra PostgreSQL. Demostración con el equipo pendiente. |
-| AC-04 | O-01, O-02 | Disponibilidad con intervalos solapados, contiguos e inválidos. | Reporte de pruebas de disponibilidad. | Pendiente |
-| AC-05, AC-06 | O-01, O-02 | Conflicto secuencial y concurrencia sobre una unidad en PostgreSQL. | Reporte de integración con respuestas HTTP y recuento final de reservas. | Pendiente |
-| AC-07 | O-04 | Aislamiento por titular, cancelación propia y disponibilidad posterior. | Reporte de integración y evidencia del guion con dos cuentas. | Pendiente |
-| AC-08 | Infraestructura | PostgreSQL disponible, migración inicial y segunda ejecución. | Registros de Compose y listado de versiones aplicadas. | Pendiente |
-| AC-09 | Infraestructura | Inicio en navegador y salud con PostgreSQL disponible y caído. | Evidencia del navegador y reporte HTTP de 200 y 503. | Pendiente |
-| AC-10 | Infraestructura | CI del commit candidato y arranque desde un clon limpio. | Enlace al run de GitHub Actions y registro de instalación. | Pendiente |
+| Criterio | Resultado asociado | Evidencia verificada |
+| --- | --- | --- |
+| AC-01 | O-01, O-04 | `tests/auth.test.js` y humo con PostgreSQL: registro, inicio de sesión, roles y cierre de sesión. |
+| AC-02 | O-01 | `tests/inventory.test.js`, humo y recorrido en Edge: catálogo público, categorías y 14 equipos de ejemplo. |
+| AC-03 | O-03 | Suite de inventario y humo: códigos únicos por unidad, permisos y respuesta 409 al repetir un código. |
+| AC-04 | O-01, O-02 | Integración con PostgreSQL: intervalos solapados y contiguos. `tests/schedule.test.js`: límites y horario futuro en interfaz. |
+| AC-05 | O-01, O-02 | Integración: conflicto secuencial, HTTP 409 y una sola fila confirmada. |
+| AC-06 | O-02 | Ocho disputas desde dos servidores y prueba SQL directa. 201/409 y una fila confirmada por disputa; consulta final sin solapamientos. |
+| AC-07 | O-04 | Integración: dos titulares, cancelación ajena rechazada, historial y disponibilidad liberada. Cinco recorridos automatizados en Edge confirmaron y cancelaron. |
+| AC-08 | Infraestructura | CI arrancó Compose, aplicó seis migraciones y comprobó su segunda ejecución sin duplicados. Se verificó también la aplicación de las seis migraciones en PostgreSQL local aislado. |
+| AC-09 | Infraestructura | Cada pantalla pública revisada cargó en Edge. CI obtuvo HTTP 200 con PostgreSQL disponible y 503 al detenerlo. |
+| AC-10 | Infraestructura | CI de `f9c1951` pasó. El README se usó para reproducir la instalación. Falta un registro explícito de arranque desde un clon limpio firmado por otro integrante. |
+
+Regresión en `main` (`f9c1951`), 17 de noviembre de 2026: Codex ejecutó `npm test` (82 correctas), `npm run test:integration` (12 correctas) y `npm run test:smoke` con PostgreSQL 17 local aislado. [CI de referencia](https://github.com/yonielvegas/audiovisual-rental-sdd/actions/runs/44121109157) · [Ensayo del flujo](delivery.md#ensayo-técnico-registrado).
 
 Para cada ejecución registra fecha, ejecutor, commit, entorno, comando o pasos, resultado esperado, resultado observado y enlace a la evidencia. Para el cambio inesperado, conserva el criterio actualizado y la prueba correspondiente junto con el resultado anterior y posterior al cambio.
 
@@ -107,7 +111,7 @@ Comprobaciones ejecutadas por Claude Code con Docker Compose en Windows, sobre u
 | AC-02, AC-03 | Sección de inventario de la prueba de humo y navegación en el navegador contra `http://localhost:8080`. | Dos unidades registradas con códigos distintos. El código repetido devolvió HTTP 409 contra el índice único `units_inventory_code_unique`, también escribiendo `nav-777` y después `NAV-777` desde el formulario. Sin sesión, HTTP 401; con una cuenta `USER`, HTTP 403 en la API y la página «Sin permisos» en `/inventario`. La consulta final no encontró códigos duplicados. |
 | AC-03, RT-02 | Inicio de sesión en el navegador con la cuenta administrativa y creación de una categoría. | El acceso llevó a `/inventario`, la cabecera mostró el usuario con rol `ADMIN` y `document.cookie` devolvió vacío, de modo que la cookie de sesión no es legible por scripts. La categoría se creó contra PostgreSQL y apareció en la lista con su identificador. |
 
-Pendientes: la ejecución remota en GitHub Actions y la comprobación desde un clon limpio por otra persona del equipo.
+Tras esta ejecución histórica se verificó CI. Consulta la matriz actual para el estado del arranque desde un clon limpio.
 
 ## Evidencia local del 15 de noviembre de 2026
 
@@ -117,7 +121,7 @@ Comprobaciones realizadas por Codex durante la preparación de infraestructura, 
 | --- | --- | --- |
 | AC-08 | Se ejecutó `npm run migrate` dos veces con PostgreSQL nativo en un entorno de prueba aislado. Se consultó luego `public.schema_migrations` y la existencia del esquema. | La primera ejecución aplicó `001-baseline.sql`. La segunda informó que no había migraciones pendientes. Se encontró una entrada y el esquema `audiovisual` estaba presente. |
 | AC-09 | Se ejecutaron `npm test`, `npm run test:smoke` y la variante `--database-down`. Se abrió la página en Edge. | Tres pruebas HTTP automatizadas correctas. Inicio y dos recursos estáticos correctos. Salud 200 con PostgreSQL disponible y 503 al detenerlo. Edge mostró la página de inicio y el estado conectado. |
-| AC-08, AC-10 | Se ejecutó `docker compose config --quiet` y se intentó el arranque de la composición. | Configuración válida. La sesión de Windows no obtuvo acceso al motor Docker y el arranque completo por Compose sigue pendiente. |
-| AC-10 | El flujo `.github/workflows/ci.yml` está preparado para ejecutarse en GitHub. | La ejecución remota y la prueba de instalación por otra persona del equipo están pendientes. |
+| AC-08, AC-10 | Se ejecutó `docker compose config --quiet` y se intentó el arranque de la composición. | Configuración válida. En esa ejecución, Windows no pudo acceder al motor Docker. GitHub Actions verificó posteriormente el arranque por Compose. |
+| AC-10 | El flujo `.github/workflows/ci.yml` está preparado para ejecutarse en GitHub. | La ejecución remota se verificó después y está enlazada en la matriz actual. El registro separado de otro integrante sigue pendiente. |
 
-En un clon local independiente del paquete Git del historial, se comprobó el commit de infraestructura `602948e`. Pasaron `npm ci`, las tres pruebas de `npm test` y `docker compose config --quiet` después de copiar `.env.example`. Quedan pendientes el clon desde GitHub y el arranque completo por un integrante del equipo.
+En un clon local independiente del paquete Git del historial, se comprobó el commit de infraestructura `602948e`. Pasaron `npm ci`, las tres pruebas de `npm test` y `docker compose config --quiet` después de copiar `.env.example`. Esta comprobación histórica se complementa con el checkout y el arranque de CI registrados en la matriz actual.

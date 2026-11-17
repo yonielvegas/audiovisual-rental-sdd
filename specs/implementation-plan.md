@@ -1,6 +1,6 @@
 # Plan de implementación
 
-Estado: plan inicial de SDD. Referencia metodológica: fases 1 y 2 del Proyecto #2 y Laboratorio 13 del profesor Regis Rivera.
+Estado: plan y entregas integradas en main. Referencia metodológica: fases 1 y 2 del Proyecto #2 y Laboratorio 13 del profesor Regis Rivera.
 
 ## Secuencia
 
@@ -9,9 +9,9 @@ Estado: plan inicial de SDD. Referencia metodológica: fases 1 y 2 del Proyecto 
 | Aplicar ODD | Yoel | Primer commit | Resultados O-01 a O-04, supuestos y preguntas en [outcomes.md](outcomes.md). |
 | Aplicar SDD | Yoel | ODD | Requisitos, reglas, datos, contratos, criterios AC-01 a AC-10 y este plan. Revisión de trazabilidad y decisiones abiertas. |
 | Inicializar sistema ejecutable | Yoel | SDD | RT-01 e infraestructura. AC-08 a AC-10, pruebas locales, CI y arranque verificable desde un clon. |
-| Cuentas y sesiones | Equipo | Infraestructura | RF-01 y AC-01, RT-02. Registro, inicio y cierre de sesión, roles `ADMIN` y `USER`, hash Argon2id y alta del administrador desde el entorno. Entregado con pruebas de autenticación, roles y caducidad de sesión. |
-| Catálogo e inventario | Eric | Infraestructura | RF-02 y RF-03, AC-02 y AC-03. Categorías, equipos, unidades físicas, catálogo público y administración básica. Entregado con pruebas de consultas, permisos y unicidad, y con [el contrato de inventario](../docs/inventory-contract.md) para Reservas. |
-| Reservas y disponibilidad | Yini, prevista | Catálogo e inventario, ya disponible | RF-04 a RF-06, AC-04 a AC-07. Disponibilidad, reservas, cancelación y prueba obligatoria de doble reserva. Parte de [el contrato de inventario](../docs/inventory-contract.md). |
+| Cuentas y sesiones | Yini, PR #12 | Infraestructura | RF-01 y AC-01, RT-02. Registro, inicio y cierre de sesión, roles `ADMIN` y `USER`, hash Argon2id y alta del administrador desde el entorno. Entregado con pruebas de autenticación, roles y caducidad de sesión. |
+| Catálogo e inventario | Yini, PR #12 | Infraestructura | RF-02 y RF-03, AC-02 y AC-03. Categorías, equipos, unidades físicas, catálogo público y administración básica. Entregado con pruebas de consultas, permisos y unicidad, y con [el contrato de inventario](../docs/inventory-contract.md) para Reservas. |
+| Reservas y disponibilidad | Eric, PR #13 | Catálogo e inventario, ya disponible | RF-04 a RF-06, AC-04 a AC-07. Disponibilidad, reservas, cancelación y prueba obligatoria de doble reserva. Parte de [el contrato de inventario](../docs/inventory-contract.md). |
 
 RF-01 y AC-01 están implementados: registro público, inicio de sesión único para todas las cuentas, cierre de sesión y autorización por rol `ADMIN` y `USER`. El contrato de sesión está descrito en [los contratos de API](api.md) y la frontera que consume Reservas, en [el contrato de inventario](../docs/inventory-contract.md). Las cuentas de prueba para los demás flujos serán ficticias. Los accesos de colaboración en GitHub se asignarán a cuentas verificadas.
 
@@ -29,6 +29,10 @@ RF-01 y AC-01 están implementados: registro público, inicio de sesión único 
 3. Proteger el solapamiento confirmado con una exclusión GiST en PostgreSQL y comprobar la unidad activa dentro de la transacción con `lockActiveUnit`.
 4. Política confirmada por la persona solicitante: inicio futuro; cancelación por el titular antes del inicio, sin anticipación mínima. Conservar historial y liberar el intervalo al cancelar.
 5. Integrar consulta pública, creación autenticada y reservas propias en el layout existente. Verificar permisos, validaciones, doble reserva, concurrencia y estado final real en PostgreSQL (AC-04 a AC-07).
+
+## Cambio durante la revisión de la Issue #5
+
+Integrar un selector de calendario con fechas anteriores deshabilitadas, revalidar el inicio al consultar, ajustar enlaces vencidos y probar los límites y la conversión AM/PM. Ver [la trazabilidad del cambio](../docs/requirement-change.md).
 
 ## Puntos de revisión
 
