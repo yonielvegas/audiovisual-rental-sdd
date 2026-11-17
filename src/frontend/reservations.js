@@ -1,3 +1,5 @@
+import { createSchedulePicker } from './reservation-schedule.js';
+
 const el = (selector) => document.querySelector(selector);
 const feedback = el('#reservation-status');
 const availabilityForm = el('#availability-form');
@@ -95,11 +97,6 @@ dialog.addEventListener('close', async () => {
   }
 });
 
-function localInput(date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
-}
-
 function readInterval() {
   const data = new FormData(availabilityForm);
   const start = new Date(String(data.get('start')));
@@ -107,6 +104,7 @@ function readInterval() {
   if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) {
     throw new Error('Elige un inicio anterior al fin.');
   }
+  if (start.getTime() <= Date.now()) throw new Error('Elige una fecha y hora de inicio posteriores al momento actual.');
   return { equipmentId: String(data.get('equipmentId')), start: start.toISOString(), end: end.toISOString() };
 }
 
@@ -143,11 +141,7 @@ async function searchAvailability(event) {
 
 async function startAvailability() {
   const requested = new URLSearchParams(window.location.search);
-  const start = new Date(Math.ceil((Date.now() + 60_000) / 3_600_000) * 3_600_000);
-  for (const [name, fallback] of [['start', start], ['end', new Date(start.getTime() + 3_600_000)]]) {
-    const value = new Date(requested.get(name) ?? fallback);
-    el(`#reservation-${name}`).value = localInput(Number.isFinite(value.getTime()) ? value : fallback);
-  }
+  const schedule = createSchedulePicker({ form: availabilityForm, requested });
   el('#reservation-zone').textContent = `Horarios en tu zona: ${Intl.DateTimeFormat().resolvedOptions().timeZone}.`;
   availabilityForm.addEventListener('submit', searchAvailability);
   availabilityForm.addEventListener('input', () => {
@@ -166,7 +160,7 @@ async function startAvailability() {
     select.replaceChildren(new Option('Elige un equipo', ''), ...options);
     if (options.some((option) => option.value === requestedId)) select.value = requestedId;
     select.disabled = false;
-    el('#availability-submit').disabled = false;
+    schedule.refresh();
     report('ready', 'Elige el equipo y el intervalo para consultar.');
   } catch (error) {
     showError(error);

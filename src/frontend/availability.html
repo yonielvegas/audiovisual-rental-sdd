@@ -11,10 +11,25 @@
         <option value="">Cargando equipos…</option>
       </select>
     </p>
-    <div class="field-row">
-      <p class="field"><label for="reservation-start">Inicio del alquiler</label><input id="reservation-start" name="start" type="datetime-local" required step="60"></p>
-      <p class="field"><label for="reservation-end">Fin del alquiler</label><input id="reservation-end" name="end" type="datetime-local" required step="60"></p>
+    <div class="schedule-fields">
+      <fieldset class="schedule-card">
+        <legend><span class="schedule-step">01</span> Inicio del alquiler</legend>
+        <span class="schedule-label" id="start-date-label">Fecha de recogida</span>
+        <button class="schedule-date" id="start-date" type="button" data-date-field="start" aria-haspopup="dialog" aria-controls="reservation-calendar" aria-labelledby="start-date-label start-date-value"><span class="schedule-calendar-icon" aria-hidden="true"></span><span id="start-date-value"></span><span aria-hidden="true">⌄</span></button>
+        <input id="reservation-start" name="start" type="hidden">
+        <div class="schedule-time"><span class="schedule-clock-icon" aria-hidden="true"></span><label>Hora<select id="start-hour" aria-label="Hora de inicio"></select></label><span class="schedule-colon" aria-hidden="true">:</span><label>Minutos<select id="start-minute" aria-label="Minutos de inicio"></select></label></div>
+        <p class="schedule-hint" id="start-hint" aria-live="polite"></p>
+      </fieldset>
+      <fieldset class="schedule-card">
+        <legend><span class="schedule-step">02</span> Fin del alquiler</legend>
+        <span class="schedule-label" id="end-date-label">Fecha de devolución</span>
+        <button class="schedule-date" id="end-date" type="button" data-date-field="end" aria-haspopup="dialog" aria-controls="reservation-calendar" aria-labelledby="end-date-label end-date-value"><span class="schedule-calendar-icon" aria-hidden="true"></span><span id="end-date-value"></span><span aria-hidden="true">⌄</span></button>
+        <input id="reservation-end" name="end" type="hidden">
+        <div class="schedule-time"><span class="schedule-clock-icon" aria-hidden="true"></span><label>Hora<select id="end-hour" aria-label="Hora de fin"></select></label><span class="schedule-colon" aria-hidden="true">:</span><label>Minutos<select id="end-minute" aria-label="Minutos de fin"></select></label></div>
+        <p class="schedule-hint" id="end-hint" aria-live="polite"></p>
+      </fieldset>
     </div>
+    <p class="schedule-summary" id="schedule-summary" aria-live="polite"></p>
     <p id="reservation-zone" class="panel-hint"></p>
     <div class="field-actions"><button class="button button-primary" id="availability-submit" type="submit" disabled>Consultar disponibilidad</button></div>
   </form>
@@ -23,6 +38,14 @@
   <p class="panel-hint">Para reservar necesitas iniciar sesión. Puedes cancelar una reserva propia antes de su inicio, sin anticipación mínima. Al terminar un alquiler, esa unidad puede iniciar otro en el mismo instante.</p>
   <noscript><p>Activa JavaScript para consultar disponibilidad y reservar.</p></noscript>
 </section>
+<dialog class="schedule-calendar" id="reservation-calendar" aria-labelledby="calendar-title" aria-describedby="calendar-hint">
+  <div class="calendar-top"><div><p class="card-tag">Elige tu fecha</p><h2 id="calendar-title">Fecha de recogida</h2></div><button class="calendar-close" id="calendar-close" type="button" aria-label="Cerrar calendario">×</button></div>
+  <div class="calendar-navigation"><button type="button" id="calendar-prev" aria-label="Mes anterior">‹</button><p id="calendar-month" aria-live="polite"></p><button type="button" id="calendar-next" aria-label="Mes siguiente">›</button></div>
+  <div class="calendar-week" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+  <div class="calendar-days" id="calendar-days" role="group" aria-label="Días del mes"></div>
+  <p class="calendar-hint" id="calendar-hint">Los días anteriores al horario permitido están deshabilitados. Usa las flechas para recorrer las fechas.</p>
+  <div class="calendar-footer"><span><i aria-hidden="true"></i> Hoy</span><button class="button button-secondary button-compact" id="calendar-today" type="button">Ir a hoy</button></div>
+</dialog>
 <dialog class="modal" id="reservation-confirm" aria-labelledby="confirmation-title">
   <form method="dialog">
     <div class="modal-head"><h2 id="confirmation-title">Confirmar reserva</h2></div>

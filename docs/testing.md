@@ -2,6 +2,8 @@
 
 ## Issue #5 · Evidencia del 17 de noviembre de 2026
 
+Ampliación de UI solicitada durante la revisión: `npm test` pasa 81 pruebas, incluidas seis nuevas sobre siguiente minuto, cambio de día/año, devolución posterior y enlaces vencidos o inválidos. En el navegador se verificaron días pasados y mes anterior deshabilitados, límite por teclado, consulta futura y reserva con los controles nuevos. El formulario impide consultar un inicio vencido y conserva el acceso con fechas futuras.
+
 Ejecutada por Codex en la rama `feat/reservas-disponibilidad`, desde `main` (`347bdba`), con una composición aislada `codex-reservas-issue5`: Node.js 24.22.3 y PostgreSQL 17.12. Las comprobaciones locales con sockets no están permitidas por el sandbox; la evidencia HTTP se obtuvo dentro de Docker con las versiones del proyecto.
 
 | Criterio | Prueba ejecutada | Resultado |

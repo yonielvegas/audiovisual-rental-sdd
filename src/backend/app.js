@@ -27,6 +27,7 @@ const assets = [
   ['/app.js', 'app.js', 'text/javascript; charset=utf-8'],
   ['/catalog.js', 'catalog.js', 'text/javascript; charset=utf-8'],
   ['/reservations.js', 'reservations.js', 'text/javascript; charset=utf-8'],
+  ['/reservation-schedule.js', 'reservation-schedule.js', 'text/javascript; charset=utf-8'],
   ['/access.js', 'access.js', 'text/javascript; charset=utf-8'],
   ['/inventory.js', 'inventory.js', 'text/javascript; charset=utf-8'],
   ['/hero.webp', 'hero.webp', 'image/webp'],
