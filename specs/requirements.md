@@ -1,6 +1,6 @@
 # Requisitos
 
-El alcance funcional procede de la solicitud del proyecto. Los contratos, las reglas operativas y las decisiones de diseño de esta especificación se proponen para revisión del equipo. Los resultados y metas de validación se documentan en [ODD](outcomes.md).
+El alcance funcional procede de la solicitud del proyecto. Los contratos y las reglas quedan documentados junto a la implementación integrada del MVP. Los resultados y metas de validación se documentan en [ODD](outcomes.md).
 
 ## Requisitos funcionales
 
@@ -21,8 +21,8 @@ El alcance funcional procede de la solicitud del proyecto. Los contratos, las re
 | RT-02 | El backend verifica identidad, rol y titularidad para cada operación protegida. | Casos de acceso sin sesión, sin rol y entre dos titulares. |
 | RT-03 | PostgreSQL preserva la integridad de las reservas simultáneas. | Prueba concurrente que consulta el estado final de la base de datos. |
 
-RF-01 requiere que el equipo acuerde un responsable, el manejo de sesiones y la asignación de permisos antes de implementar operaciones protegidas. La política de cancelación y los detalles de las ventanas temporales requieren revisión.
+RF-01 se implementó con catálogo e inventario en el PR #12. La política de fechas y cancelación de RF-04 a RF-06 está documentada en [reglas de negocio](business-rules.md). El límite del formulario web se detalla en [el cambio de requisito](../docs/requirement-change.md).
 
 ## Límites del MVP
 
-Quedan fuera la gestión detallada de devoluciones, daños y mantenimiento avanzado, multas, logística, facturación y reportes avanzados. La incorporación de pagos requiere aprobación. La entrega de infraestructura cubre RT-01. Las funcionalidades de negocio se implementarán después de la especificación en sus entregas correspondientes.
+Quedan fuera la gestión detallada de devoluciones, daños y mantenimiento avanzado, multas, logística, facturación y reportes avanzados. La incorporación de pagos requiere aprobación. La entrega de infraestructura cubre RT-01. Los PRs #12 y #13 entregaron las funcionalidades de negocio según la especificación integrada.

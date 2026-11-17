@@ -1,6 +1,6 @@
 # Criterios de aceptación
 
-Los criterios AC-01 a AC-07 proponen cómo comprobar el MVP descrito en [requisitos](requirements.md). La política de AC-04 a AC-07 se confirmó el 17 de noviembre de 2026: inicio futuro y cancelación propia antes del inicio, sin anticipación mínima. Las pruebas de la Issue #5 verifican estos criterios. AC-08 a AC-10 comprueban la entrega de infraestructura de la Issue 3. Las pruebas y evidencias esperadas se detallan en la [estrategia de pruebas](../docs/testing.md).
+Los criterios AC-01 a AC-07 permiten comprobar el MVP descrito en [requisitos](requirements.md). La política de AC-04 a AC-07 se confirmó el 17 de noviembre de 2026: inicio futuro y cancelación propia antes del inicio, sin anticipación mínima. Las pruebas de la Issue #5 verifican estos criterios. AC-08 a AC-10 comprueban la entrega de infraestructura de la Issue 3. Las pruebas y evidencias esperadas se detallan en la [estrategia de pruebas](../docs/testing.md).
 
 ## Funcionalidad del MVP
 
@@ -15,6 +15,10 @@ Los criterios AC-01 a AC-07 proponen cómo comprobar el MVP descrito en [requisi
 | AC-07 | RF-06, O-04 | Dos cuentas autenticadas. La primera tiene una reserva confirmada que se encuentra dentro de las condiciones de cancelación acordadas. | Ambas consultan sus reservas. La segunda intenta cancelar la reserva ajena y luego la titular cancela la propia. Se vuelve a consultar la disponibilidad del intervalo. | Solo la titular ve su reserva. La cancelación ajena se rechaza y la propia queda registrada como cancelada. La unidad vuelve a aparecer disponible si satisface las demás reglas. |
 
 Los ejemplos horarios aplican el contrato implementado de intervalo semiabierto `[inicio, fin)`. Envían instantes RFC 3339 con desplazamiento explícito y esperan resultados equivalentes cuando dos entradas representan el mismo instante.
+
+## Extensión de AC-04 en el navegador
+
+El calendario deshabilita los días pasados y los inicios vencidos. Un enlace con fecha vencida se corrige a un intervalo futuro. El fin debe ser posterior al inicio, y el selector distingue medianoche y mediodía en formato AM/PM. La API permite la consulta histórica. Ver [evidencia del cambio](../docs/requirement-change.md).
 
 ## Infraestructura inicial
 

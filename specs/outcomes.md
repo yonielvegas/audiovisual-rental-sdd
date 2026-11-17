@@ -45,4 +45,4 @@ Los resultados P0 se usan para priorizar el flujo y la regla de integridad. Las 
 - [x] Resultados priorizados con indicadores, metas y método de validación.
 - [ ] Revisar con el equipo las preguntas, las metas y la evidencia del guion.
 
-Validación pendiente: acordar con Product / Spec Lead el conjunto de escenarios, las metas y el registro de resultados antes de la demostración.
+La [entrega](../docs/delivery.md) recoge cinco recorridos automatizados exitosos para O-01 y el guion para medir los intentos del equipo. Los resultados de concurrencia de O-02 y de titularidad y cancelación de O-04 están en [pruebas](../docs/testing.md). Sigue pendiente documentar la medición con participantes y su comparación con la línea base simulada.

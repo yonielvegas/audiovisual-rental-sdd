@@ -10,6 +10,8 @@ Consulta [ODD](specs/outcomes.md), [requisitos](specs/requirements.md), [arquite
 
 Para desarrollar nuevas pantallas y preparar la evidencia de las Issues, consulta la [guía de UI/UX](docs/ui-ux.md) y la [guía de trabajo y entrega académica](docs/project-workflow.md).
 
+[Guion e índice de la entrega académica](docs/delivery.md)
+
 ## Instalación y ejecución
 
 1. Clona el [repositorio privado](https://github.com/yonielvegas/audiovisual-rental-sdd) con una cuenta que tenga acceso y entra a la carpeta `audiovisual-rental-sdd`.
@@ -90,12 +92,12 @@ GitHub Actions ejecuta la suite y comprueba el arranque y las migraciones con un
 
 Yoel Samaniego inició el repositorio y preparó la documentación inicial con apoyo de IA.
 
-| Integrante | Rol inicial | Trabajo |
+| Integrante | Rol inicial | Trabajo entregado |
 | --- | --- | --- |
-| Eric Ruiz | Product / Spec Lead | [#4 · Catálogo e inventario](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/4) |
-| Yoel Samaniego | Architecture / Development Lead | [#1 · ODD](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/1), [#2 · SDD](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/2) y [#3 · Infraestructura](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/3) |
-| Yini Pan | QA / DevOps Lead | [#5 · Reservas y disponibilidad](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/5) (previsto) |
+| Eric Ruiz | Product / Spec Lead | [#5 · Reservas y disponibilidad](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/13) |
+| Yoel Samaniego | Architecture / Development Lead | [#1 · ODD](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/1), [#2 · SDD](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/2), [#3 · Infraestructura](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/3) y [#10 · Landing](https://github.com/yonielvegas/audiovisual-rental-sdd/issues/10) |
+| Yini Pan | QA / DevOps Lead | [#4 · Catálogo, inventario y autenticación](https://github.com/yonielvegas/audiovisual-rental-sdd/pull/12) |
 
-Una vez integrada la infraestructura, Eric y Yini deben clonar el repositorio con sus cuentas, comprobar el arranque y trabajar en una rama por Issue desde `main`. La entrega de Yini parte de [el contrato de inventario](docs/inventory-contract.md) y incluye la prueba concurrente de doble reserva en `tests/reservations.postgres.test.js`. El contrato de sesión y la autorización por rol ya están implementados y documentados en [los contratos de API](specs/api.md). El PR de cada entrega debe enlazar la Issue, los criterios y las pruebas ejecutadas.
+Los aportes integrados están registrados en los PRs del equipo. Reservas consume el [contrato de inventario](docs/inventory-contract.md), y la doble reserva concurrente se verifica en tests/reservations.postgres.test.js. El contrato de sesión y la autorización por rol están descritos en [la API](specs/api.md).
 
 El [registro de roles y ciclos](docs/roles-and-cycles.md), las [decisiones](docs/decisions.md) y el [registro de IA](docs/ai-log.md) documentan la preparación y la revisión del equipo.

@@ -108,13 +108,11 @@ unidad no disponible.
 ```js
 // Dentro de la transacción de la reserva
 const unit = await inventory.lockActiveUnit(client, unitId);
-if (!unit) throw notFound('La unidad indicada no existe o no está activa.');
+if (!unit) throw conflict('unit_unavailable', 'La unidad no está en servicio. Consulta otra unidad.');
 // … insertar la reserva; la restricción de exclusión decide el solapamiento
 ```
 
-La política de qué hacer con las reservas ya confirmadas de una unidad que se
-desactiva (conservarlas o avisar al titular) sigue pendiente de acuerdo del
-equipo. El inventario no las modifica.
+Al retirar una unidad, se conservan sus reservas confirmadas y su historial. La unidad queda fuera de la disponibilidad, y el titular puede cancelar según las reglas vigentes. La retirada no reasigna unidades ni produce avisos automáticos.
 
 ## 6. Rutas HTTP disponibles
 
